@@ -101,6 +101,9 @@ class IconPackage
     public
     # @name : icon name
     def filePath(name, preferredSize=[])
+        unless preferredSize.kind_of? Array then
+            preferredSize = [ preferredSize ]
+        end
         icon = @icons[name]
         size ||= preferredSize.find { |s| icon.sizes.include?(s) }
         size ||= icon.sizes.max do |a, b|

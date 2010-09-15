@@ -54,12 +54,10 @@ end
 #
 class IconWidget < KDE::PixmapRegionSelectorWidget
 
-    def initialize(size)
+    def initialize(len)
         super(nil)
-        @iconSize = Qt::Size.new(size, size)
-        self.minimumSize = @iconSize
-        self.maximumSize = @iconSize
-        self.size = @iconSize
+        @iconSize = Qt::Size.new(len, len)
+        setMaximumWidgetSize(len, len)
     end
 
     def setIcon(icon)
@@ -153,38 +151,33 @@ class IconViewDock < Qt::DockWidget
     def initialize(parent)
         super(i18n('Icon View'), parent)
         self.objectName = 'IconView'
-
-        # create Widgets
-        @icon16 =  IconWidget.new(16)
-        @icon22 =  IconWidget.new(22)
-        @icon32 =  IconWidget.new(32)
-        @icon48 =  IconWidget.new(48)
-        @icon64 =  IconWidget.new(64)
-        @icon128 =  IconWidget.new(128)
-        @allIcon = [ @icon16, @icon22, @icon32, @icon48, @icon64, @icon128 ]
-#         @iconSVG =  IconWidget.new
-        vw = VBoxLayoutWidget.new do |l|
-            l.addWidgets(nil, @icon16, nil)
-            l.addWidgets(nil, '16x16', nil)
-            l.addWidgets(nil, @icon22, nil)
-            l.addWidgets(nil, '22x22', nil)
-            l.addWidgets(nil, @icon32, nil)
-            l.addWidgets(nil, '32x32', nil)
-            l.addWidgets(nil, @icon48, nil)
-            l.addWidgets(nil, '48x48', nil)
-            l.addWidgets(nil, @icon64, nil)
-            l.addWidgets(nil, '64x64', nil)
-            l.addWidgets(nil, @icon128, nil)
-            l.addWidgets(nil, '128x128', nil)
-        end
-        setWidget(vw)
     end
 
     slots 'itemClicked(QListWidgetItem*)'
     def itemClicked(item)
-        iconInfo = IconPackage.getIconInfo(item.text)
-        qtIcon = Qt::Icon.new(IconPackage.filePath(item.text))
-        @allIcon.each { |i| i.setIcon(qtIcon) }
+        name = item.text
+        iconInfo = IconPackage.getIconInfo(name)
+        vw = VBoxLayoutWidget.new
+        iconInfo.sizes.sort_by do |s|
+            num = s.to_s[/\d+/]
+            num ? num.to_i : 0
+        end.each do |sz|
+            if sz == :scalable then
+                icon = IconWidget.new(128)
+                icon.setIcon(Qt::Icon.new(IconPackage.filePath(name, sz)))
+                vw.addWidgets(nil, icon, nil)
+                vw.addWidgets(nil, "svg", nil)
+            else
+                edgeLen = sz.to_s[/\d+/].to_i
+                icon = IconWidget.new(edgeLen)
+                icon.setIcon(Qt::Icon.new(IconPackage.filePath(name, sz)))
+                vw.addWidgets(nil, icon, nil)
+                vw.addWidgets(nil, "#{edgeLen} x #{edgeLen}", nil)
+            end
+        end
+        oldw = widget
+        setWidget(vw)
+        oldw.destroy if oldw
     end
 end
 
