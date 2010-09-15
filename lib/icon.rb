@@ -37,7 +37,8 @@ class IconList
         @icons = {}
     end
 
-    def [](name)
+    # check duplicate and add.
+    def add(name)
         sym = name.to_sym
         unless @icons[sym] then
             @icons[sym] = IconInfo.new(sym)
@@ -48,11 +49,24 @@ class IconList
     def each
         @icons.each_value { |i| yield i }
     end
+
+    def [](name)
+        ret = @icons[name.to_sym]
+        unless ret
+            puts "internal error. no icon named:'#{name}'"
+            puts @icons.keys.inspect
+            puts @icons.values.inspect
+            exit 1
+        end
+        ret
+    end
 end
 
 class IconPackage
     attr_reader :path, :sizes, :types, :icons
     alias :list :icons
+
+    protected
     def initialize(path)
         @path = path
         @sizes = Set.new
@@ -74,7 +88,7 @@ class IconPackage
                 if File.exist? dir then
                     Dir.foreach(dir) do |f|
                         if f =~ /\.(png|jpg|jpeg|gif|svg)$/i then
-                            icon = @icons[f]
+                            icon = @icons.add(f)
                             icon.addSize(size)
                             icon.addType(type)
                         end
@@ -84,6 +98,7 @@ class IconPackage
         end
     end
 
+    public
     # @name : icon name
     def filePath(name, preferredSize=[])
         icon = @icons[name]
@@ -99,5 +114,40 @@ class IconPackage
             end
         type = icon.types.first
         File.join(path, size.to_s, type.to_s, name.to_s)
+    end
+
+    def self.setPath(path)
+        @@package = self.new(path)
+    end
+
+    def self.filePath(name, preferredSize=[])
+        @@package.filePath(name, preferredSize)
+    end
+
+    # bypassing.
+#     %w{ path sizes types icons }.each do |atr|
+#         self.module_eval do
+#             @@package.__send__(atr)
+#         end
+#     end
+
+    def self.icons
+        @@package.icons
+    end
+
+    def self.path
+        @@package.path
+    end
+
+    def self.sizes
+        @@package.sizes
+    end
+
+    def self.types
+        @@package.types
+    end
+
+    def self.getIconInfo(name)
+        icons[name]
     end
 end

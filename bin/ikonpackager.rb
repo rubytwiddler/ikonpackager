@@ -8,7 +8,8 @@
 $KCODE = 'UTF8'
 require 'ftools'
 
-APP_NAME = File.basename(__FILE__).sub(/\.rb/, '')
+APP_FILE = File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__
+APP_NAME = File.basename(APP_FILE).sub(/\.rb/, '')
 APP_DIR = File::dirname(File.expand_path(File.dirname(__FILE__)))
 LIB_DIR = File::join(APP_DIR, "lib")
 APP_VERSION = "0.1.0"
@@ -51,7 +52,7 @@ end
 #--------------------------------------------------------------------
 #
 #
-class IconWidget < Qt::Widget
+class IconWidget < KDE::PixmapRegionSelectorWidget
 
     def initialize(size)
         super(nil)
@@ -59,6 +60,10 @@ class IconWidget < Qt::Widget
         self.minimumSize = @iconSize
         self.maximumSize = @iconSize
         self.size = @iconSize
+    end
+
+    def setIcon(icon)
+        setPixmap(icon.pixmap(@iconSize))
     end
 end
 
@@ -141,6 +146,66 @@ class IconPackageSelectorDlg < Qt::Dialog
 end
 
 
+#--------------------------------------------------------------------
+#
+#
+class IconViewDock < Qt::DockWidget
+    def initialize(parent)
+        super(i18n('Icon View'), parent)
+        self.objectName = 'IconView'
+
+        # create Widgets
+        @icon16 =  IconWidget.new(16)
+        @icon22 =  IconWidget.new(22)
+        @icon32 =  IconWidget.new(32)
+        @icon48 =  IconWidget.new(48)
+        @icon64 =  IconWidget.new(64)
+        @icon128 =  IconWidget.new(128)
+        @allIcon = [ @icon16, @icon22, @icon32, @icon48, @icon64, @icon128 ]
+#         @iconSVG =  IconWidget.new
+        vw = VBoxLayoutWidget.new do |l|
+            l.addWidgets(nil, @icon16, nil)
+            l.addWidgets(nil, '16x16', nil)
+            l.addWidgets(nil, @icon22, nil)
+            l.addWidgets(nil, '22x22', nil)
+            l.addWidgets(nil, @icon32, nil)
+            l.addWidgets(nil, '32x32', nil)
+            l.addWidgets(nil, @icon48, nil)
+            l.addWidgets(nil, '48x48', nil)
+            l.addWidgets(nil, @icon64, nil)
+            l.addWidgets(nil, '64x64', nil)
+            l.addWidgets(nil, @icon128, nil)
+            l.addWidgets(nil, '128x128', nil)
+        end
+        setWidget(vw)
+    end
+
+    slots 'itemClicked(QListWidgetItem*)'
+    def itemClicked(item)
+        iconInfo = IconPackage.getIconInfo(item.text)
+        qtIcon = Qt::Icon.new(IconPackage.filePath(item.text))
+        @allIcon.each { |i| i.setIcon(qtIcon) }
+    end
+end
+
+
+#--------------------------------------------------------------------
+#
+#
+class IconInfoDock < Qt::DockWidget
+    def initialize(parent)
+        super(i18n('Icon Info'), parent)
+        self.objectName = 'IconInfo'
+
+        @iconView = IconWidget.new(256)
+        setWidget(@iconView)
+    end
+
+    slots 'itemClicked(QListWidgetItem*)'
+    def itemClicked(item)
+    end
+end
+
 
 #--------------------------------------------------------------------
 #--------------------------------------------------------------------
@@ -166,48 +231,21 @@ class MainWindow < KDE::MainWindow
     #
     #
     def createWidgets
-        @icon16 =  IconWidget.new(16)
-        @icon22 =  IconWidget.new(22)
-        @icon32 =  IconWidget.new(32)
-        @icon48 =  IconWidget.new(48)
-        @icon64 =  IconWidget.new(64)
-        @icon128 =  IconWidget.new(128)
-        @iconView =  IconWidget.new(256)
-#         @iconSVG =  IconWidget.new
+        @iconViewDoc = IconViewDock.new(self)
+        addDockWidget(Qt::LeftDockWidgetArea, @iconViewDoc)
+        @iconInfoDoc = IconInfoDock.new(self)
+        addDockWidget(Qt::LeftDockWidgetArea, @iconInfoDoc)
 
         # icon list
-        @iconListWidget = IconListWidget.new
-        @iconListWidget.viewMode = Qt::ListView::IconMode
-
-        # layout
-        vl = Qt::VBoxLayout.new do |l|
-            l.addWidget(@icon16)
-            l.addWidgets(nil, '16x16', nil)
-            l.addWidget(@icon22)
-            l.addWidgets(nil, '22x22', nil)
-            l.addWidget(@icon32)
-            l.addWidgets(nil, '32x32', nil)
-            l.addWidget(@icon48)
-            l.addWidgets(nil, '48x48', nil)
-            l.addWidget(@icon64)
-            l.addWidgets(nil, '64x64', nil)
-            l.addWidget(@icon128)
-            l.addWidgets(nil, '128x128', nil)
-        end
-        iconInfoLayout = Qt::HBoxLayout.new do |l|
-            l.addWidget(@iconView)
-            l.addLayout(vl)
+        @iconListWidget = IconListWidget.new do |w|
+            w.viewMode = Qt::ListView::IconMode
+            connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
+                    @iconViewDoc, SLOT('itemClicked(QListWidgetItem*)'))
+            connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
+                    @iconInfoDoc, SLOT('itemClicked(QListWidgetItem*)'))
         end
 
-
-        # layout
-        hlw = HBoxLayoutWidget.new do |l|
-            l.addLayout(iconInfoLayout)
-            l.addWidget(@iconListWidget)
-            l.layout.setStretch(0,0)
-            l.layout.setStretch(1,1)
-        end
-        setCentralWidget(hlw )
+        setCentralWidget(@iconListWidget)
     end
 
     #
@@ -256,8 +294,8 @@ class MainWindow < KDE::MainWindow
 
     slots 'iconPackageSelected(const QString&)'
     def iconPackageSelected(path)
-        @iconPackage = IconPackage.new(path)
-        @iconListWidget.setPackage(@iconPackage)
+        package = IconPackage.setPath(path)
+        @iconListWidget.setPackage(package)
     end
 
     slots :selectPackage
@@ -272,17 +310,17 @@ end
 #    main start
 #
 
-$about = KDE::AboutData.new(APP_NAME, nil, KDE::ki18n(APP_NAME), APP_VERSION,
+about = KDE::AboutData.new(APP_NAME, nil, KDE::ki18n(APP_NAME), APP_VERSION,
                             KDE::ki18n('Gem Utitlity with KDE GUI.')
                            )
-$about.addLicenseTextFile(APP_DIR + '/MIT-LICENSE')
-KDE::CmdLineArgs.init(ARGV, $about)
+about.addLicenseTextFile(APP_DIR + '/MIT-LICENSE')
+KDE::CmdLineArgs.init(ARGV, about)
 
 $app = KDE::Application.new
-args = KDE::CmdLineArgs.parsedArgs()
+# KDE::CmdLineArgs.parsedArgs()
 $config = KDE::Global::config
+
 win = MainWindow.new
 $app.setTopWidget(win)
-
 win.show
 $app.exec
