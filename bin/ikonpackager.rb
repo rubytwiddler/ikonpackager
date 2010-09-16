@@ -202,6 +202,9 @@ class IconInfoDock < Qt::DockWidget
         @sizesLabel = Qt::Label.new('') do |w|
             w.wordWrap = true
         end
+        @scrollArea = Qt::ScrollArea.new do |w|
+            w.widgetResizable = true
+        end
 
         # layout
         formLayout = Qt::FormLayout.new do |l|
@@ -212,7 +215,8 @@ class IconInfoDock < Qt::DockWidget
         lw = VBoxLayoutWidget.new do |l|
             l.addLayout(formLayout)
         end
-        setWidget(lw)
+        @scrollArea.setWidget(lw)
+        setWidget(@scrollArea)
     end
 
     slots 'itemClicked(QListWidgetItem*)'
@@ -260,6 +264,7 @@ class MainWindow < KDE::MainWindow
         # icon list
         @iconListWidget = IconListWidget.new do |w|
             w.viewMode = Qt::ListView::IconMode
+            w.sortingEnabled = true
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
                     @iconViewDoc, SLOT('itemClicked(QListWidgetItem*)'))
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
@@ -270,7 +275,7 @@ class MainWindow < KDE::MainWindow
 
         # layout
         lw = VBoxLayoutWidget.new do |l|
-            l.addWidget(@searchLine)
+            l.addWidgets('Find:', @searchLine)
             l.addWidget(@iconListWidget)
         end
         setCentralWidget(lw)
@@ -334,10 +339,11 @@ class MainWindow < KDE::MainWindow
 end
 
 
+
+#--------------------------------------------------------------------
 #
 #    main start
 #
-
 about = KDE::AboutData.new(APP_NAME, nil, KDE::ki18n(APP_NAME), APP_VERSION,
                             KDE::ki18n('Gem Utitlity with KDE GUI.')
                            )

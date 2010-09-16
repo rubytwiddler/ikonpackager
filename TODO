@@ -1,4 +1,3 @@
-*filter editline.
 *icon order in grid.
 *pack extension variation.
 *exclude cursor theme directory for icon package selection.
@@ -7,3 +6,4 @@
 
 *progress bar when select folder.
 *cancel behaviour.
+*rename each/all size file.
