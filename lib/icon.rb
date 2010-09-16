@@ -150,6 +150,10 @@ class IconPackage
         @@package
     end
 
+    def self.packageName
+        File.basename(@@package.path)
+    end
+
     def self.filePath(name, preferredSize=[])
         @@package.filePath(name, preferredSize)
     end

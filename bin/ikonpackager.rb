@@ -186,6 +186,7 @@ class IconInfoDock < Qt::DockWidget
         super(i18n('Icon Info'), parent)
         self.objectName = 'IconInfo'
 
+        @packageLabel = Qt::Label.new('')
         @nameLabel = Qt::Label.new('')
         @typesLabel = Qt::Label.new('')
         @sizesLabel = Qt::Label.new('') do |w|
@@ -197,6 +198,7 @@ class IconInfoDock < Qt::DockWidget
 
         # layout
         formLayout = Qt::FormLayout.new do |l|
+            l.addRow('Package:', @packageLabel)
             l.addRow('Name:', @nameLabel)
             l.addRow('Type:', @typesLabel)
             l.addRow('Size:', @sizesLabel)
@@ -213,6 +215,7 @@ class IconInfoDock < Qt::DockWidget
         name = item.text
         iconInfo = IconPackage.getIconInfo(name)
 
+        @packageLabel.text = IconPackage.packageName
         @nameLabel.text = name
         @typesLabel.text = iconInfo.types.join(',')
         @sizesLabel.text = iconInfo.sizes.join(', ')
