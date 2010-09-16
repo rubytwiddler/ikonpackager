@@ -340,18 +340,18 @@ class MainWindow < KDE::MainWindow
         action = menu.exec(@typeButton.mapToGlobal(ZeroPoint))
         if action then
             @typeButton.text = action.text
-            filterType(action.text[PRE_TYPE.size..-1])
+            filterIconByType(action.text[PRE_TYPE.size..-1])
         end
         menu.deleteLater
     end
 
-    def filterType(type)
-        def displayAllIcon
+    def filterIconByType(type)
+        def displayAll
             @iconListWidget.count.times do |n|
                 @iconListWidget.item(n).setHidden(false)
             end
         end
-        def displayTypeIcon(type_sym)
+        def filterByType(type_sym)
             @iconListWidget.count.times do |n|
                 i = @iconListWidget.item(n)
                 iconInfo = IconPackage.getIconInfo(i.text)
@@ -362,9 +362,9 @@ class MainWindow < KDE::MainWindow
         puts "filter:#{type}"
         type_sym = type.to_sym
         if type_sym == :All then
-            displayAllIcon
+            displayAll
         else
-            displayTypeIcon(type_sym)
+            filterByType(type_sym)
         end
     end
 
