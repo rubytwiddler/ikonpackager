@@ -256,6 +256,7 @@ class MainWindow < KDE::MainWindow
         @iconInfoDoc = IconInfoDock.new(self)
         addDockWidget(Qt::LeftDockWidgetArea, @iconInfoDoc)
 
+
         # icon list
         @iconListWidget = IconListWidget.new do |w|
             w.viewMode = Qt::ListView::IconMode
@@ -264,8 +265,15 @@ class MainWindow < KDE::MainWindow
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
                     @iconInfoDoc, SLOT('itemClicked(QListWidgetItem*)'))
         end
+        #
+        @searchLine = KDE::ListWidgetSearchLine.new(nil, @iconListWidget)
 
-        setCentralWidget(@iconListWidget)
+        # layout
+        lw = VBoxLayoutWidget.new do |l|
+            l.addWidget(@searchLine)
+            l.addWidget(@iconListWidget)
+        end
+        setCentralWidget(lw)
     end
 
     #
