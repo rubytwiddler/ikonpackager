@@ -95,11 +95,11 @@ class IconPackage
         @icons = IconList.new
 
         # all sizes
-        @allSizes += Dir.allDirType(path)
+        @allSizes += Dir.allDirs(path)
 
         # all types
         @allSizes.each do |d|
-            @allTypes += Dir.allDirType(File.join(path, d))
+            @allTypes += Dir.allDirs(File.join(path, d))
         end
 
         # size(e.g. 22x22) / type(e.g. mimetypes)

@@ -33,21 +33,6 @@ require "mylibs"
 require "icon"
 
 
-#--------------------------------------------------------------------
-#
-#
-class Dir
-    def self.allDirType(path)
-        dirs = []
-        Dir.foreach(path) do |f|
-            fullPath = File.join(path, f)
-            if File.directory?(fullPath) and f !~ /^\.\.?$/ then
-                dirs << f
-            end
-        end
-        dirs
-    end
-end
 
 #--------------------------------------------------------------------
 #
@@ -121,13 +106,17 @@ class IconPackageSelectorDlg < Qt::Dialog
     end
 
     def updateIconPackageList
+        def iconDir?(path, file)
+            Dir.allDirs(File.join(path, file)).find { |d| d == 'scalable' or d =~ /^\d\d+/ }
+        end
+
         path = @iconDirsComboBox.currentText
         return if @lastPath and @lastPath == path
 
         @lastPath = path
         @iconPckagesList.clear
-        Dir.allDirType(path).sort.each do |f|
-            @iconPckagesList.addItem(f)
+        Dir.allDirs(path).sort.each do |f|
+            @iconPckagesList.addItem(f) if iconDir?(path, f)
         end
     end
 

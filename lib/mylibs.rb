@@ -441,6 +441,22 @@ end
 #
 #
 #
+class Dir
+    def self.allDirs(path)
+        dirs = []
+        Dir.foreach(path) do |f|
+            fullPath = File.join(path, f)
+            if File.directory?(fullPath) and f !~ /^\.\.?$/ then
+                dirs << f
+            end
+        end
+        dirs
+    end
+end
+
+#
+#
+#
 class String
     def double_quote
         '"' + self + '"'
