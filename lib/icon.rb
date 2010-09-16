@@ -2,7 +2,6 @@
 #
 #
 class IconInfo
-    attr_reader :name, :types, :sizes
     def initialize(name, type=nil, size=nil)
         @name = name.to_sym
 
@@ -17,6 +16,28 @@ class IconInfo
         else
             @sizes = Set.new([])
         end
+    end
+
+    def name
+        @name.to_s
+    end
+
+    def types
+        @types.map { |t| t.to_s }
+    end
+
+    def sizes
+        @sizes.sort_by do |s|
+            num = s.to_s[/\d+/]
+            num ? num.to_i : 1024
+        end .map { |s| s.to_s }
+    end
+
+    def maxSize
+        return 'scalable' if @sizes.include?(:scalable)
+        @sizes.max do |a, b|
+            a.to_s[/\d+/].to_i <=> b.to_s[/\d+/].to_i
+        end.to_s
     end
 
     def addSize(size)
@@ -63,27 +84,27 @@ class IconList
 end
 
 class IconPackage
-    attr_reader :path, :sizes, :types, :icons
+    attr_reader :path, :allSizes, :allTypes, :icons
     alias :list :icons
 
     protected
     def initialize(path)
         @path = path
-        @sizes = Set.new
-        @types = Set.new
+        @allSizes = Set.new
+        @allTypes = Set.new
         @icons = IconList.new
 
-        # sized
-        @sizes += Dir.allDirType(path)
+        # all sizes
+        @allSizes += Dir.allDirType(path)
 
-        # types
-        @sizes.each do |d|
-            @types += Dir.allDirType(File.join(path, d))
+        # all types
+        @allSizes.each do |d|
+            @allTypes += Dir.allDirType(File.join(path, d))
         end
 
         # size(e.g. 22x22) / type(e.g. mimetypes)
-        @sizes.each do |size|
-            @types.each do |type|
+        @allSizes.each do |size|
+            @allTypes.each do |type|
                 dir = File.join(path, size, type)
                 if File.exist? dir then
                     Dir.foreach(dir) do |f|
@@ -106,17 +127,12 @@ class IconPackage
         end
         icon = @icons[name]
         size ||= preferredSize.find { |s| icon.sizes.include?(s) }
-        size ||= icon.sizes.max do |a, b|
-                if a == :scalable then
-                    1
-                elsif b == :scalable then
-                    -1
-                else
-                    a.to_s[/\d+/].to_i <=> b.to_s[/\d+/].to_i
-                end
-            end
-        type = icon.types.first
-        File.join(path, size.to_s, type.to_s, name.to_s)
+        size ||= icon.maxSize
+        type = icon.types.find do |t|
+            File.exist?(File.join(path, size, t, name))
+        end
+        return nil unless type
+        File.join(path, size, type, name)
     end
 
     def self.setPath(path)
@@ -128,7 +144,7 @@ class IconPackage
     end
 
     # bypassing.
-#     %w{ path sizes types icons }.each do |atr|
+#     %w{ path allSizes allTypes icons }.each do |atr|
 #         self.module_eval do
 #             @@package.__send__(atr)
 #         end
@@ -142,12 +158,12 @@ class IconPackage
         @@package.path
     end
 
-    def self.sizes
-        @@package.sizes
+    def self.allSizes
+        @@package.allSizes
     end
 
-    def self.types
-        @@package.types
+    def self.allTypes
+        @@package.allTypes
     end
 
     def self.getIconInfo(name)

@@ -73,7 +73,7 @@ class IconListWidget < Qt::ListWidget
         clear
         package.list.each do |i|
             qtIcon = Qt::Icon.new(package.filePath(i.name))
-            addItem(Qt::ListWidgetItem.new(qtIcon, i.name.to_s))
+            addItem(Qt::ListWidgetItem.new(qtIcon, i.name))
         end
     end
 end
@@ -126,7 +126,7 @@ class IconPackageSelectorDlg < Qt::Dialog
 
         @lastPath = path
         @iconPckagesList.clear
-        Dir.allDirType(path).each do |f|
+        Dir.allDirType(path).sort.each do |f|
             @iconPckagesList.addItem(f)
         end
     end
@@ -151,6 +151,10 @@ class IconViewDock < Qt::DockWidget
     def initialize(parent)
         super(i18n('Icon View'), parent)
         self.objectName = 'IconView'
+        @scrollArea = Qt::ScrollArea.new do |w|
+            w.alignment = Qt::AlignHCenter
+        end
+        setWidget(@scrollArea)
     end
 
     slots 'itemClicked(QListWidgetItem*)'
@@ -159,24 +163,27 @@ class IconViewDock < Qt::DockWidget
         iconInfo = IconPackage.getIconInfo(name)
         vw = VBoxLayoutWidget.new
         iconInfo.sizes.sort_by do |s|
-            num = s.to_s[/\d+/]
+            num = s[/\d+/]
             num ? num.to_i : 0
         end.each do |sz|
-            if sz == :scalable then
+            filePath = IconPackage.filePath(name, sz)
+#             puts "filePath:#{filePath} : exist? #{File.exist?(filePath)} "
+#             puts "size : #{sz.inspect}"
+            if sz == 'scalable' then
                 icon = IconWidget.new(128)
-                icon.setIcon(Qt::Icon.new(IconPackage.filePath(name, sz)))
+                icon.setIcon(Qt::Icon.new(filePath))
                 vw.addWidgets(nil, icon, nil)
                 vw.addWidgets(nil, "svg", nil)
             else
-                edgeLen = sz.to_s[/\d+/].to_i
+                edgeLen = sz[/\d+/].to_i
                 icon = IconWidget.new(edgeLen)
-                icon.setIcon(Qt::Icon.new(IconPackage.filePath(name, sz)))
+                icon.setIcon(Qt::Icon.new(filePath))
                 vw.addWidgets(nil, icon, nil)
                 vw.addWidgets(nil, "#{edgeLen} x #{edgeLen}", nil)
             end
         end
-        oldw = widget
-        setWidget(vw)
+        oldw = @scrollArea.takeWidget
+        @scrollArea.setWidget(vw)
         oldw.destroy if oldw
     end
 end
@@ -190,12 +197,32 @@ class IconInfoDock < Qt::DockWidget
         super(i18n('Icon Info'), parent)
         self.objectName = 'IconInfo'
 
-        @iconView = IconWidget.new(256)
-        setWidget(@iconView)
+        @nameLabel = Qt::Label.new('')
+        @typesLabel = Qt::Label.new('')
+        @sizesLabel = Qt::Label.new('') do |w|
+            w.wordWrap = true
+        end
+
+        # layout
+        formLayout = Qt::FormLayout.new do |l|
+            l.addRow('Name:', @nameLabel)
+            l.addRow('Type:', @typesLabel)
+            l.addRow('Size:', @sizesLabel)
+        end
+        lw = VBoxLayoutWidget.new do |l|
+            l.addLayout(formLayout)
+        end
+        setWidget(lw)
     end
 
     slots 'itemClicked(QListWidgetItem*)'
     def itemClicked(item)
+        name = item.text
+        iconInfo = IconPackage.getIconInfo(name)
+
+        @nameLabel.text = name
+        @typesLabel.text = iconInfo.types.join(',')
+        @sizesLabel.text = iconInfo.sizes.join(', ')
     end
 end
 
