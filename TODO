@@ -1,7 +1,8 @@
+*type selection.
+*edit menu. toolbar.s
 *icon order in grid.
 *pack extension variation.
-*exclude cursor theme directory for icon package selection.
-*add no directory hierarchy type icons.
+*add no directory hierarchy type icon package.
 *bug error : couldn't create image from  ""
 
 *progress bar when select folder.

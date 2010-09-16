@@ -23,7 +23,11 @@ class IconInfo
     end
 
     def types
-        @types.map { |t| t.to_s }
+        @types.map { |t| t.to_s } .sort
+    end
+
+    def memberType?(type)
+        @types.member?(type)
     end
 
     def sizes
@@ -53,37 +57,40 @@ class IconInfo
     end
 end
 
-class IconList
-    def initialize
-        @icons = {}
-    end
-
-    # check duplicate and add.
-    def add(name)
-        sym = name.to_sym
-        unless @icons[sym] then
-            @icons[sym] = IconInfo.new(sym)
-        end
-        @icons[sym]
-    end
-
-    def each
-        @icons.each_value { |i| yield i }
-    end
-
-    def [](name)
-        ret = @icons[name.to_sym]
-        unless ret
-            puts "internal error. no icon named:'#{name}'"
-            puts @icons.keys.inspect
-            puts @icons.values.inspect
-            exit 1
-        end
-        ret
-    end
-end
 
 class IconPackage
+    protected
+    class IconList
+        def initialize
+            @icons = {}
+        end
+
+        # check duplicate and add.
+        def add(name)
+            sym = name.to_sym
+            unless @icons[sym] then
+                @icons[sym] = IconInfo.new(sym)
+            end
+            @icons[sym]
+        end
+
+        def each
+            @icons.each_value { |i| yield i }
+        end
+
+        def [](name)
+            ret = @icons[name.to_sym]
+            unless ret
+                puts "internal error. no icon named:'#{name}'"
+                puts @icons.keys.inspect
+                puts @icons.values.inspect
+                exit 1
+            end
+            ret
+        end
+    end
+
+    public
     attr_reader :path, :allSizes, :allTypes, :icons
     alias :list :icons
 
@@ -139,6 +146,10 @@ class IconPackage
         @@package = self.new(path)
     end
 
+    def self.getPackage
+        @@package
+    end
+
     def self.filePath(name, preferredSize=[])
         @@package.filePath(name, preferredSize)
     end
@@ -150,8 +161,8 @@ class IconPackage
 #         end
 #     end
 
-    def self.icons
-        @@package.icons
+    def self.eachIcons(&blk)
+        @@package.icons.each(&blk)
     end
 
     def self.path
@@ -167,6 +178,6 @@ class IconPackage
     end
 
     def self.getIconInfo(name)
-        icons[name]
+        @@package.icons[name]
     end
 end

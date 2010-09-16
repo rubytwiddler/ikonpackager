@@ -240,6 +240,7 @@ class MainWindow < KDE::MainWindow
         Qt::Timer.singleShot(0, self, SLOT(:listDirectory))
     end
 
+    PRE_TYPE = 'Type: '
     #
     #
     #
@@ -249,6 +250,10 @@ class MainWindow < KDE::MainWindow
         @iconInfoDoc = IconInfoDock.new(self)
         addDockWidget(Qt::LeftDockWidgetArea, @iconInfoDoc)
 
+        # type select button
+        @typeButton = KDE::PushButton.new(PRE_TYPE + 'All') do |w|
+            connect(w, SIGNAL(:clicked), self, SLOT(:selectType))
+        end
 
         # icon list
         @iconListWidget = IconListWidget.new do |w|
@@ -258,13 +263,15 @@ class MainWindow < KDE::MainWindow
                     @iconViewDoc, SLOT('itemClicked(QListWidgetItem*)'))
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
                     @iconInfoDoc, SLOT('itemClicked(QListWidgetItem*)'))
+            connect(w, SIGNAL('itemClicked(QListWidgetItem*)'), \
+                    self, SLOT('itemClicked(QListWidgetItem*)'))
         end
         #
         @searchLine = KDE::ListWidgetSearchLine.new(nil, @iconListWidget)
 
         # layout
         lw = VBoxLayoutWidget.new do |l|
-            l.addWidgets('Find:', @searchLine)
+            l.addWidgets(@typeButton, 'Find:', @searchLine)
             l.addWidget(@iconListWidget)
         end
         setCentralWidget(lw)
@@ -312,12 +319,60 @@ class MainWindow < KDE::MainWindow
 
     end
 
+    slots 'itemClicked(QListWidgetItem*)'
+    def itemClicked(item)
+#         @iconInfo = IconPackage.getIconInfo(item.text)
+    end
 
+    ZeroPoint = Qt::Point.new(0, 0)
+    slots :selectType
+    def selectType
+        package = IconPackage.getPackage
+        return unless package
+
+        menu = Qt::Menu.new
+        menu.addAction(PRE_TYPE + 'All')
+
+        # set types list in @typeButton
+        package.allTypes.each do |type|
+            menu.addAction(PRE_TYPE  + type)
+        end
+        action = menu.exec(@typeButton.mapToGlobal(ZeroPoint))
+        if action then
+            @typeButton.text = action.text
+            filterType(action.text[PRE_TYPE.size..-1])
+        end
+        menu.deleteLater
+    end
+
+    def filterType(type)
+        def displayAllIcon
+            @iconListWidget.count.times do |n|
+                @iconListWidget.item(n).setHidden(false)
+            end
+        end
+        def displayTypeIcon(type_sym)
+            @iconListWidget.count.times do |n|
+                i = @iconListWidget.item(n)
+                iconInfo = IconPackage.getIconInfo(i.text)
+                i.setHidden(! iconInfo.memberType?(type_sym) )
+            end
+        end
+
+        puts "filter:#{type}"
+        type_sym = type.to_sym
+        if type_sym == :All then
+            displayAllIcon
+        else
+            displayTypeIcon(type_sym)
+        end
+    end
 
     slots 'iconPackageSelected(const QString&)'
     def iconPackageSelected(path)
         package = IconPackage.setPath(path)
         @iconListWidget.setPackage(package)
+        @typeButton.text = PRE_TYPE + 'All'
     end
 
     slots :selectPackage
