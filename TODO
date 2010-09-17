@@ -1,10 +1,14 @@
-*type selection.
-*edit menu. toolbar.s
+*two pane.
+
+*file selector dock.
 *icon order in grid.
+*copy/rename/move icon package.
 *pack extension variation.
-*add no directory hierarchy type icon package.
+*launch icon editor gimp/inkskape.
 *bug error : couldn't create image from  ""
 
+*check icon size validity.
+*add no directory hierarchy type icon package.
 *progress bar when select folder.
 *cancel behaviour.
 *rename each/all size file.

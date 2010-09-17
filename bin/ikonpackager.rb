@@ -71,6 +71,7 @@ class IconPackageSelectorDlg < Qt::Dialog
 
     def initialize
         super(nil)
+        self.windowTitle = i18n('Select Package')
 
         @iconDirsComboBox = Qt::ComboBox.new do |w|
             w.addItems(IconDirs)
@@ -87,10 +88,11 @@ class IconPackageSelectorDlg < Qt::Dialog
         connect(@cancelBtn, SIGNAL(:clicked), self, SLOT(:reject))
 
         # layout
-        lo = Qt::VBoxLayout.new
-        lo.addWidget(@iconDirsComboBox)
-        lo.addWidget(@iconPckagesList)
-        lo.addWidgets(nil, @okBtn, @cancelBtn)
+        lo = Qt::VBoxLayout.new do |l|
+            l.addWidget(@iconDirsComboBox)
+            l.addWidget(@iconPckagesList)
+            l.addWidgets(nil, @okBtn, @cancelBtn)
+        end
         setLayout(lo)
     end
 
@@ -125,10 +127,66 @@ class IconPackageSelectorDlg < Qt::Dialog
         File.join(@lastPath, @iconPckagesList.currentItem.text)
     end
 
+    # call this for select package.
     def select
         updateIconPackageList
         return nil unless exec == Qt::Dialog::Accepted
         iconPackagePath
+    end
+end
+
+
+#--------------------------------------------------------------------
+#
+#
+class IconPackageNewDlg < Qt::Dialog
+
+    def initialize
+        super(nil)
+        self.windowTitle = i18n('Create Package')
+
+        @fileSelectDlg = Qt::FileDialog.new do |w|
+            w.options = Qt::FileDialog::ShowDirsOnly
+            w.fileMode = Qt::FileDialog::Directory
+        end
+        @iconDirsComboBox = Qt::ComboBox.new do |w|
+            KDE::Global.dirs.resourceDirs('icon').map do |d|
+                if File.writable?(d) then
+                    w.addItem(d)
+                end
+            end
+        end
+        @otherDirBtn = KDE::PushButton.new(i18n('Other Directory')) do |w|
+            connect(w, SIGNAL(:clicked)) do
+                if @fileSelectDlg.exec == Qt::Dialog::Accepted then
+                    dir = @fileSelectDlg.selectedFiles.first
+                    @iconDirsComboBox.addItem(dir)
+                    index = @iconDirsComboBox.findText(dir)
+                    @iconDirsComboBox.currentIndex = index
+                end
+            end
+        end
+        @packageNameLineEdit = KDE::LineEdit.new
+        @okBtn = KDE::PushButton.new(KDE::Icon.new('dialog-ok'), 'OK')
+        @cancelBtn = KDE::PushButton.new(KDE::Icon.new('dialog-cancel'), 'Cancel')
+        connect(@okBtn, SIGNAL(:clicked), self, SLOT(:accept))
+        connect(@cancelBtn, SIGNAL(:clicked), self, SLOT(:reject))
+
+        # layout
+        lo = Qt::VBoxLayout.new do |l|
+            l.addWidgets(@iconDirsComboBox, @otherDirBtn)
+            l.addWidgets(i18n('Package Name :'), @packageNameLineEdit)
+            l.addWidgets(nil, @okBtn, @cancelBtn)
+        end
+        setLayout(lo)
+    end
+
+    def packageName
+        @packageNameLineEdit.text
+    end
+
+    def packagePath
+        @iconDirsComboBox.currentText
     end
 end
 
@@ -156,8 +214,6 @@ class IconViewDock < Qt::DockWidget
             num ? num.to_i : 0
         end.each do |sz|
             filePath = IconPackage.filePath(name, sz)
-#             puts "filePath:#{filePath} : exist? #{File.exist?(filePath)} "
-#             puts "size : #{sz.inspect}"
             if sz == 'scalable' then
                 icon = IconWidget.new(128)
                 icon.setIcon(Qt::Icon.new(filePath))
@@ -236,6 +292,7 @@ class MainWindow < KDE::MainWindow
         @actions = KDE::ActionCollection.new(self)
         createWidgets
         createMenu
+        createToolBar
         createDialogs
         @actions.readSettings
         setAutoSaveSettings
@@ -244,7 +301,6 @@ class MainWindow < KDE::MainWindow
     end
 
     PRE_TYPE = 'Type: '
-    #
     #
     #
     def createWidgets
@@ -285,22 +341,61 @@ class MainWindow < KDE::MainWindow
     #
     def createMenu
         # create actions
-        quitAction = @actions.addNew(i18n('Quit'), self, \
+        @quitAction = @actions.addNew(i18n('Quit'), self, \
             { :icon => 'exit', :shortCut => 'Ctrl+Q', :triggered => :close })
-        openPackageAction = @actions.addNew(i18n('Open Package'), self, \
-            { :icon => 'document-open', :shortCut => 'Ctrl+O', :triggered => :selectPackage })
+        @openPackageAction = @actions.addNew(i18n('Open Package'), self, \
+            { :icon => 'document-open', :shortCut => 'Ctrl+O', :triggered => :openPackage })
+        @newPackageAction = @actions.addNew(i18n('New Icon Package'), self, \
+            { :icon => 'document-new', :shortCut => 'Ctrl+N', :triggered => :newPackage})
+        @renameAction = @actions.addNew(i18n('Rename Icon'), self, \
+            { :icon => 'edit-rename', :shortCut => 'Ctrl+R', :triggered => :renameIcon })
+        @moveAction = @actions.addNew(i18n('Move Icon'), self, \
+            { :icon => 'configure', :shortCut => 'Ctrl+M', :triggered => :moveIcon })
+        @cutAction = @actions.addNew(i18n('Cut Icon'), self, \
+            { :icon => 'edit-cut', :shortCut => 'Ctrl+X', :triggered => :cutIcon })
+        @copyAction = @actions.addNew(i18n('Copy Icon'), self, \
+            { :icon => 'edit-copy', :shortCut => 'Ctrl+C', :triggered => :copyIcon })
+        @pasteAction = @actions.addNew(i18n('Paste Icon'), self, \
+            { :icon => 'edit-paste', :shortCut => 'Ctrl+V', :triggered => :pasteIcon })
 
         # file menu
         fileMenu = KDE::Menu.new(i18n('&File'), self)
-        fileMenu.addAction(openPackageAction)
+        fileMenu.addAction(@newPackageAction)
+        fileMenu.addAction(@openPackageAction)
         fileMenu.addSeparator
-        fileMenu.addAction(quitAction)
+        fileMenu.addAction(@quitAction)
+
+        # edit menu
+        editMenu = KDE::Menu.new(i18n('Edit'), self)
+        editMenu.addAction(@renameAction)
+        editMenu.addAction(@moveAction)
+        editMenu.addAction(@cutAction)
+        editMenu.addAction(@copyAction)
+        editMenu.addAction(@pasteAction)
+
+        # settings menu
+#         settingsMenu = KDE::Menu.new(i18n('Settings'), self)
+#         settingsMenu.addAction(@pasteAction)
+
+        # help menu
 
         # insert menus in MenuBar
         menu = KDE::MenuBar.new
         menu.addMenu( fileMenu )
+        menu.addMenu( editMenu )
 #         menu.addMenu( helpMenu )
         setMenuBar(menu)
+    end
+
+    def createToolBar
+        @mainToolBar = toolBar
+        @mainToolBar.addAction(@newPackageAction)
+        @mainToolBar.addAction(@openPackageAction)
+        @mainToolBar.addAction(@renameAction)
+        @mainToolBar.addAction(@moveAction)
+        @mainToolBar.addAction(@cutAction)
+        @mainToolBar.addAction(@copyAction)
+        @mainToolBar.addAction(@pasteAction)
     end
 
     #
@@ -311,6 +406,7 @@ class MainWindow < KDE::MainWindow
             connect(d, SIGNAL('iconPackageSelected(const QString&)'), \
                     self, SLOT('iconPackageSelected(const QString&)'))
         end
+        @iconPackageNewDlg = IconPackageNewDlg.new
     end
 
 
@@ -327,7 +423,6 @@ class MainWindow < KDE::MainWindow
 #         @iconInfo = IconPackage.getIconInfo(item.text)
     end
 
-    ZeroPoint = Qt::Point.new(0, 0)
     slots :selectType
     def selectType
         package = IconPackage.getPackage
@@ -340,7 +435,7 @@ class MainWindow < KDE::MainWindow
         package.allTypes.each do |type|
             menu.addAction(PRE_TYPE  + type)
         end
-        action = menu.exec(@typeButton.mapToGlobal(ZeroPoint))
+        action = menu.exec(@typeButton.mapToGlobal(Qt::Point.new(20, 10)))
         if action then
             @typeButton.text = action.text
             filterIconByType(action.text[PRE_TYPE.size..-1])
@@ -378,10 +473,35 @@ class MainWindow < KDE::MainWindow
         @typeButton.text = PRE_TYPE + 'All'
     end
 
-    slots :selectPackage
-    def selectPackage
+    slots :openPackage
+    def openPackage
         path = @iconPackageSelectorDlg.select
 #         iconPackageSelected(path)
+    end
+
+    slots :newPackage
+    def newPackage
+        @iconPackageNewDlg.exec
+    end
+
+    slots :renameIcon
+    def renameIcon
+    end
+
+    slots :moveIcon
+    def moveIcon
+    end
+
+    slots :cutIcon
+    def cutIcon
+    end
+
+    slots :copyIcon
+    def copyIcon
+    end
+
+    slots :pasteIcon
+    def pasteIcon
     end
 end
 

@@ -142,6 +142,7 @@ class IconPackage
         File.join(path, size, type, name)
     end
 
+    @@package = nil
     def self.setPath(path)
         @@package = self.new(path)
     end
