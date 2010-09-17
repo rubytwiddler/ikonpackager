@@ -268,7 +268,7 @@ end
 #--------------------------------------------------------------------
 #
 #
-class IconListPane < Qt::Widget
+class IconListPane < Qt::Frame
     class IconListWidget < Qt::ListWidget
         def setPackage(package)
             clear
@@ -279,11 +279,16 @@ class IconListPane < Qt::Widget
         end
     end
 
+    StyleFocusOff = "IconListPane { border: 1px solid transparent; }"
+    StyleFocusOn = "IconListPane { border: 1px solid; }"
+
     signals 'itemClicked(const QString&)'
     def initialize
         super
         @package = nil
 
+        self.frameShape = Qt::Frame::Panel
+        self.styleSheet = StyleFocusOff
         createWidget
     end
 
@@ -361,6 +366,18 @@ class IconListPane < Qt::Widget
             filterByType(type_sym)
         end
     end
+
+    def isActive?
+        [ @typeButton, @iconListWidget, @searchLine ].find { |o| o.focus }
+    end
+
+    def updateFocus
+        active = isActive?
+        return if @activeFlag && @activeFlag == active
+        @activeFlag = active
+        self.styleSheet = active ? StyleFocusOn : StyleFocusOff
+    end
+
 end
 
 
@@ -399,8 +416,22 @@ class MainWindow < KDE::MainWindow
             connect(w, SIGNAL('itemClicked(const QString&)'), \
                     @iconInfoDoc, SLOT('itemClicked(const QString&)'))
         end
+        @iconListRightPane = IconListPane.new do |w|
+            connect(w, SIGNAL('itemClicked(const QString&)'), \
+                    @iconViewDoc, SLOT('itemClicked(const QString&)'))
+            connect(w, SIGNAL('itemClicked(const QString&)'), \
+                    @iconInfoDoc, SLOT('itemClicked(const QString&)'))
+        end
+        connect($app, SIGNAL('focusChanged(QWidget*,QWidget*)')) do |from,to|
+            @iconListLeftPane.updateFocus
+            @iconListRightPane.updateFocus
+        end
 
-        setCentralWidget(@iconListLeftPane)
+        @paneSplitter = Qt::Splitter.new(Qt::Horizontal) do |s|
+            s.addWidget(@iconListLeftPane)
+            s.addWidget(@iconListRightPane)
+        end
+        setCentralWidget(@paneSplitter)
     end
 
     #
