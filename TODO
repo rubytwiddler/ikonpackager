@@ -1,5 +1,7 @@
 *two pane.
 
+*package select dialog ok,cancel => close.
+*package info change at pane focus changed.
 *file selector dock.
 *icon order in grid.
 *copy/rename/move icon package.

@@ -39,14 +39,12 @@ require "icon"
 #
 #
 class IconPackageSelectorDlg < Qt::Dialog
-    IconDirs = KDE::Global.dirs.resourceDirs('icon')
-
     def initialize
         super(nil)
         self.windowTitle = i18n('Select Package')
 
         @iconDirsComboBox = Qt::ComboBox.new do |w|
-            w.addItems(IconDirs)
+            w.addItems(KDE::Global.dirs.resourceDirs('icon'))
             connect(w, SIGNAL('currentIndexChanged(int)'), self, SLOT('currentIndexChanged(int)'))
         end
 
@@ -284,8 +282,9 @@ class IconListPane < Qt::Frame
 
     signals 'itemClicked(const QString&)'
     def initialize
-        super
+        super(nil)
         @package = nil
+        @activeFlag = false
 
         self.frameShape = Qt::Frame::Panel
         self.styleSheet = StyleFocusOff
@@ -367,19 +366,51 @@ class IconListPane < Qt::Frame
         end
     end
 
-    def isActive?
+    def focused?
         [ @typeButton, @iconListWidget, @searchLine ].find { |o| o.focus }
     end
 
-    def updateFocus
-        active = isActive?
-        return if @activeFlag && @activeFlag == active
-        @activeFlag = active
-        self.styleSheet = active ? StyleFocusOn : StyleFocusOff
+    def active=(flag)
+        return if @activeFlag == flag
+        @activeFlag = flag
+        self.styleSheet = flag ? StyleFocusOn : StyleFocusOff
+    end
+
+    def active
+        @activeFlag
+    end
+end
+
+class PaneGroup < Qt::Object
+    def initialize(parent=nil)
+        @activePane = nil
+        @panes = []
+        super(parent)
+
+        connect($app, SIGNAL('focusChanged(QWidget*,QWidget*)')) do |from,to|
+            updatefocus
+        end
+    end
+
+    attr_reader :activePane
+    def add(pane)
+        return if @panes.include? pane
+        @panes << pane
+#         pane.active = @activePane == nil
+#         @activePane ||= pane
+    end
+
+    def updatefocus
+        self.activePane = @panes.find { |p| p.focused? }
+    end
+
+    def activePane=(pane)
+        return unless @panes.include? pane and pane and @activePane != pane
+        @activePane = pane
+        @panes.each { |p| p.active = p == @activePane }
     end
 
 end
-
 
 #--------------------------------------------------------------------
 #--------------------------------------------------------------------
@@ -399,7 +430,7 @@ class MainWindow < KDE::MainWindow
         @actions.readSettings
         setAutoSaveSettings
 
-        Qt::Timer.singleShot(0, self, SLOT(:listDirectory))
+        Qt::Timer.singleShot(0, self, SLOT(:firstSystemUpdate))
     end
 
     #
@@ -422,9 +453,9 @@ class MainWindow < KDE::MainWindow
             connect(w, SIGNAL('itemClicked(const QString&)'), \
                     @iconInfoDoc, SLOT('itemClicked(const QString&)'))
         end
-        connect($app, SIGNAL('focusChanged(QWidget*,QWidget*)')) do |from,to|
-            @iconListLeftPane.updateFocus
-            @iconListRightPane.updateFocus
+        @paneGroup = PaneGroup.new do |w|
+            w.add(@iconListLeftPane)
+            w.add(@iconListRightPane)
         end
 
         @paneSplitter = Qt::Splitter.new(Qt::Horizontal) do |s|
@@ -511,9 +542,9 @@ class MainWindow < KDE::MainWindow
     #-------------------------------------------------------------
     #
     #
-    slots :listDirectory
-    def listDirectory
-
+    slots :firstSystemUpdate
+    def firstSystemUpdate
+        @paneGroup.activePane = @iconListLeftPane
     end
 
     slots 'itemClicked(QListWidgetItem*)'
@@ -525,7 +556,7 @@ class MainWindow < KDE::MainWindow
     slots 'iconPackageSelected(const QString&)'
     def iconPackageSelected(path)
         package = IconPackage.setPath(path)
-        @iconListLeftPane.setPackage(package)
+        @paneGroup.activePane.setPackage(package)
     end
 
     slots :openPackage
