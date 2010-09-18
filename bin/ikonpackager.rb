@@ -266,7 +266,7 @@ class IconListPane < Qt::Frame
     class IconListWidget < Qt::ListWidget
         def setPackage(package)
             clear
-            package.list.each do |i|
+            package.eachIcon do |i|
                 qtIcon = Qt::Icon.new(package.filePath(i.name))
                 addItem(Qt::ListWidgetItem.new(qtIcon, i.name))
             end
@@ -300,6 +300,9 @@ class IconListPane < Qt::Frame
         @iconListWidget = IconListWidget.new do |w|
             w.viewMode = Qt::ListView::IconMode
             w.sortingEnabled = true
+            w.movement = Qt::ListView::Static
+            w.resizeMode = Qt::ListView::Adjust
+            w.gridSize = Qt::Size.new(64,64)
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)')) do |i|
                 @observer.eventCall(:iconChanged,  @package, i.text)
             end

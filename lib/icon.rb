@@ -144,7 +144,7 @@ class IconPackage
         File.basename(@path)
     end
 
-    def eachIcons(&blk)
+    def eachIcon(&blk)
         @icons.each(&blk)
     end
 
