@@ -16,6 +16,8 @@ class IconInfo
         else
             @sizes = Set.new([])
         end
+
+
     end
 
     def name
@@ -52,6 +54,20 @@ class IconInfo
         @types.add(type.to_sym)
     end
 
+    def addFileName(fileName)
+        @fileNames ||= Set.new([])
+        @fileNames.add(fileName)
+    end
+
+    def realFileName(path, size, type)
+        filePath = nil
+        return nil unless @fileNames.any? do |file|
+            filePath = File.join(path, size, type, file)
+            File.exist?(filePath)
+        end
+        return filePath
+    end
+
     def multiple?
         @types.size > 1
     end
@@ -65,12 +81,16 @@ class IconPackage
             @icons = {}
         end
 
+        def nameNormalize(name)
+            name.sub(/(.*)\.\w+$/, "\\1").to_sym
+        end
         # check duplicate and add.
         def add(name)
-            sym = name.to_sym
+            sym = nameNormalize(name)
             unless @icons[sym] then
                 @icons[sym] = IconInfo.new(sym)
             end
+            @icons[sym].addFileName(name)
             @icons[sym]
         end
 
@@ -127,17 +147,17 @@ class IconPackage
 
     # @name : icon name
     def filePath(name, preferredSize=[])
+        icon = @icons[name]
         unless preferredSize.kind_of? Array then
             preferredSize = [ preferredSize ]
         end
-        icon = @icons[name]
-        size ||= preferredSize.find { |s| icon.sizes.include?(s) }
-        size ||= icon.maxSize
-        type = icon.types.find do |t|
-            File.exist?(File.join(path, size, t, name))
+        size = preferredSize.empty? ? icon.maxSize : \
+                preferredSize.find { |s| icon.sizes.include?(s) }
+        filePath = nil
+        return nil unless icon.types.any? do |t|
+            filePath = icon.realFileName(path, size, t)
         end
-        return nil unless type
-        File.join(path, size, type, name)
+        filePath
     end
 
     def packageName

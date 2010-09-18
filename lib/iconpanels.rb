@@ -18,6 +18,7 @@ class IconWidget < Qt::Widget
     def paintEvent(event)
         painter = Qt::Painter.new(self)
         painter.drawPixmap(0,0, @iconPixmap)
+        painter.end
     end
 end
 
