@@ -1,9 +1,7 @@
-*toggle dual/single pane.
+*pack extension variation.
 
-*needless rect region select mode in icon view panel.
 *copy/rename/move icon package.
 *file selector dock.
-*pack extension variation.
 *launch icon editor gimp/inkskape.
 *bug error : couldn't create image from  ""
 *convert .icon file.
@@ -11,5 +9,4 @@
 *check icon size validity.
 *add no directory hierarchy type icon package.
 *progress bar when select folder.
-*cancel behaviour.
 *rename each/all size file.

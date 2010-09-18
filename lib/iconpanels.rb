@@ -2,16 +2,22 @@
 #--------------------------------------------------------------------
 #
 #
-class IconWidget < KDE::PixmapRegionSelectorWidget
+class IconWidget < Qt::Widget
 
     def initialize(len)
         super(nil)
         @iconSize = Qt::Size.new(len, len)
-        setMaximumWidgetSize(len, len)
+        self.minimumSize = @iconSize
+        self.maximumSize = @iconSize
     end
 
     def setIcon(icon)
-        setPixmap(icon.pixmap(@iconSize))
+        @iconPixmap = icon.pixmap(@iconSize)
+    end
+
+    def paintEvent(event)
+        painter = Qt::Painter.new(self)
+        painter.drawPixmap(0,0, @iconPixmap)
     end
 end
 
