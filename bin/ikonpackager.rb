@@ -101,8 +101,13 @@ class MainWindow < KDE::MainWindow
             { :icon => 'edit-copy', :shortCut => 'Ctrl+C', :triggered => :copyIcon })
         @pasteAction = @actions.addNew(i18n('Paste Icon'), self, \
             { :icon => 'edit-paste', :shortCut => 'Ctrl+V', :triggered => :pasteIcon })
-        iconViewAction = @iconViewDock.toggleViewAction
-        iconInfoAction = @iconInfoDock.toggleViewAction
+        @iconViewAction = @iconViewDock.toggleViewAction
+        @iconInfoAction = @iconInfoDock.toggleViewAction
+        @splitPaneAction = KDE::ToggleAction.new(KDE::Icon.new('view-split-left-right'), \
+                                                i18n('split/close'),self)
+        @splitPaneAction.checked = true
+        connect(@splitPaneAction, SIGNAL('toggled(bool)'), @paneGroup, \
+                SLOT('splitPaneToggled(bool)'))
 
         # file menu
         fileMenu = KDE::Menu.new(i18n('&File'), self)
@@ -121,8 +126,10 @@ class MainWindow < KDE::MainWindow
 
         # view menu
         viewMenu = KDE::Menu.new(i18n('View'), self)
-        viewMenu.addAction(iconInfoAction)
-        viewMenu.addAction(iconViewAction)
+        viewMenu.addAction(@iconInfoAction)
+        viewMenu.addAction(@iconViewAction)
+        viewMenu.addSeparator
+        viewMenu.addAction(@splitPaneAction)
 
         # settings menu
 #         settingsMenu = KDE::Menu.new(i18n('Settings'), self)
@@ -143,6 +150,9 @@ class MainWindow < KDE::MainWindow
         @mainToolBar = toolBar
         @mainToolBar.addAction(@newPackageAction)
         @mainToolBar.addAction(@openPackageAction)
+        @mainToolBar.addSeparator
+        @mainToolBar.addAction(@splitPaneAction)
+        @mainToolBar.addSeparator
         @mainToolBar.addAction(@renameAction)
         @mainToolBar.addAction(@moveAction)
         @mainToolBar.addAction(@cutAction)

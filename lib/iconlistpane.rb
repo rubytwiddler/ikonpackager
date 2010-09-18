@@ -107,7 +107,7 @@ class IconListPane < Qt::Frame
     end
 
     def focused?
-        [ @typeButton, @iconListWidget, @searchLine ].find { |o| o.focus }
+        [ @iconListWidget, @searchLine, @typeButton ].find { |o| o.focus }
     end
 
     def active=(flag)
@@ -162,4 +162,16 @@ class PaneGroup < Qt::Object
         @panes.each { |p| p.active = p == @activePane }
     end
 
+    slots 'splitPaneToggled(bool)'
+    def splitPaneToggled(flag)
+        @splitFlag = flag
+        if @splitFlag then
+            # split
+            @panes[1].visible = true
+        else
+            # close
+            self.activePane = @panes[0]
+            @panes[1].visible = false
+        end
+    end
 end
