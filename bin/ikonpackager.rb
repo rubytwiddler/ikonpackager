@@ -190,15 +190,14 @@ class IconViewDock < Qt::DockWidget
         setWidget(@scrollArea)
     end
 
-    slots 'itemClicked(const QString&)'
-    def itemClicked(name)
-        iconInfo = IconPackage.getIconInfo(name)
+    def iconChanged(package, name)
+        iconInfo = package.getIconInfo(name)
         vw = VBoxLayoutWidget.new
         iconInfo.sizes.sort_by do |s|
             num = s[/\d+/]
             num ? num.to_i : 0
         end.each do |sz|
-            filePath = IconPackage.filePath(name, sz)
+            filePath = package.filePath(name, sz)
             if sz == 'scalable' then
                 icon = IconWidget.new(128)
                 icon.setIcon(Qt::Icon.new(filePath))
@@ -251,11 +250,10 @@ class IconInfoDock < Qt::DockWidget
         setWidget(@scrollArea)
     end
 
-    slots 'itemClicked(const QString&)'
-    def itemClicked(name)
-        iconInfo = IconPackage.getIconInfo(name)
+    def iconChanged(package, name)
+        iconInfo = package.getIconInfo(name)
 
-        @packageLabel.text = IconPackage.packageName
+        @packageLabel.text = package.packageName
         @nameLabel.text = name
         @typesLabel.text = iconInfo.types.join(',')
         @sizesLabel.text = iconInfo.sizes.join(', ')
@@ -280,7 +278,6 @@ class IconListPane < Qt::Frame
     StyleFocusOff = "IconListPane { border: 1px solid transparent; }"
     StyleFocusOn = "IconListPane { border: 1px solid; }"
 
-    signals 'itemClicked(const QString&)'
     def initialize
         super(nil)
         @package = nil
@@ -292,6 +289,9 @@ class IconListPane < Qt::Frame
     end
 
     PRE_TYPE = 'Type: '
+
+    attr_writer :observer
+    signals 'itemClicked(QObject&,const QString&)'
     def createWidget
         # type select button
         @typeButton = KDE::PushButton.new(PRE_TYPE + 'All') do |w|
@@ -303,7 +303,7 @@ class IconListPane < Qt::Frame
             w.viewMode = Qt::ListView::IconMode
             w.sortingEnabled = true
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)')) do |i|
-                emit itemClicked(i.text)
+                @observer.eventCall(:iconChanged,  @package, i.text)
             end
         end
         #
@@ -317,22 +317,22 @@ class IconListPane < Qt::Frame
         setLayout(lo)
     end
 
-    def setPackage(package)
-        @package = package
-        @iconListWidget.setPackage(package)
+
+    def setPackagePath(path)
+        @package = IconPackage.new(path)
+        @iconListWidget.setPackage(@package)
         @typeButton.text = PRE_TYPE + 'All'
     end
 
     slots :selectType
     def selectType
-        package = IconPackage.getPackage
-        return unless package
+        return unless @package
 
         menu = Qt::Menu.new
         menu.addAction(PRE_TYPE + 'All')
 
         # set types list in @typeButton
-        package.allTypes.each do |type|
+        @package.allTypes.each do |type|
             menu.addAction(PRE_TYPE  + type)
         end
         action = menu.exec(@typeButton.mapToGlobal(Qt::Point.new(20, 10)))
@@ -352,7 +352,7 @@ class IconListPane < Qt::Frame
         def filterByType(type_sym)
             @iconListWidget.count.times do |n|
                 i = @iconListWidget.item(n)
-                iconInfo = IconPackage.getIconInfo(i.text)
+                iconInfo = @package.getIconInfo(i.text)
                 i.setHidden(! iconInfo.memberType?(type_sym) )
             end
         end
@@ -385,6 +385,7 @@ class PaneGroup < Qt::Object
     def initialize(parent=nil)
         @activePane = nil
         @panes = []
+        @iconPeers = []
         super(parent)
 
         connect($app, SIGNAL('focusChanged(QWidget*,QWidget*)')) do |from,to|
@@ -395,9 +396,16 @@ class PaneGroup < Qt::Object
     attr_reader :activePane
     def add(pane)
         return if @panes.include? pane
+        pane.observer= self
         @panes << pane
-#         pane.active = @activePane == nil
-#         @activePane ||= pane
+    end
+
+    def eventCall(method, *args)
+        @iconPeers.each { |p| p.send(method, *args) }
+    end
+
+    def addIconPeer(peer)
+        @iconPeers << peer
     end
 
     def updatefocus
@@ -441,21 +449,13 @@ class MainWindow < KDE::MainWindow
         @iconInfoDoc = IconInfoDock.new(self)
         addDockWidget(Qt::LeftDockWidgetArea, @iconInfoDoc)
 
-        @iconListLeftPane = IconListPane.new do |w|
-            connect(w, SIGNAL('itemClicked(const QString&)'), \
-                    @iconViewDoc, SLOT('itemClicked(const QString&)'))
-            connect(w, SIGNAL('itemClicked(const QString&)'), \
-                    @iconInfoDoc, SLOT('itemClicked(const QString&)'))
-        end
-        @iconListRightPane = IconListPane.new do |w|
-            connect(w, SIGNAL('itemClicked(const QString&)'), \
-                    @iconViewDoc, SLOT('itemClicked(const QString&)'))
-            connect(w, SIGNAL('itemClicked(const QString&)'), \
-                    @iconInfoDoc, SLOT('itemClicked(const QString&)'))
-        end
+        @iconListLeftPane = IconListPane.new
+        @iconListRightPane = IconListPane.new
         @paneGroup = PaneGroup.new do |w|
             w.add(@iconListLeftPane)
             w.add(@iconListRightPane)
+            w.addIconPeer(@iconInfoDoc)
+            w.addIconPeer(@iconViewDoc)
         end
 
         @paneSplitter = Qt::Splitter.new(Qt::Horizontal) do |s|
@@ -547,22 +547,14 @@ class MainWindow < KDE::MainWindow
         @paneGroup.activePane = @iconListLeftPane
     end
 
-    slots 'itemClicked(QListWidgetItem*)'
-    def itemClicked(item)
-#         @iconInfo = IconPackage.getIconInfo(item.text)
-    end
-
-
     slots 'iconPackageSelected(const QString&)'
     def iconPackageSelected(path)
-        package = IconPackage.setPath(path)
-        @paneGroup.activePane.setPackage(package)
+        @paneGroup.activePane.setPackagePath(path)
     end
 
     slots :openPackage
     def openPackage
         path = @iconPackageSelectorDlg.select
-#         iconPackageSelected(path)
     end
 
     slots :newPackage

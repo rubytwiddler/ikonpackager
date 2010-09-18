@@ -94,7 +94,6 @@ class IconPackage
     attr_reader :path, :allSizes, :allTypes, :icons
     alias :list :icons
 
-    protected
     def initialize(path)
         @path = path
         @allSizes = Set.new
@@ -115,7 +114,7 @@ class IconPackage
                 dir = File.join(path, size, type)
                 if File.exist? dir then
                     Dir.foreach(dir) do |f|
-                        if f =~ /\.(png|jpg|jpeg|gif|svg)$/i then
+                        if f =~ /\.(png|jpg|jpeg|gif|svg|svgz)$/i then
                             icon = @icons.add(f)
                             icon.addSize(size)
                             icon.addType(type)
@@ -126,7 +125,6 @@ class IconPackage
         end
     end
 
-    public
     # @name : icon name
     def filePath(name, preferredSize=[])
         unless preferredSize.kind_of? Array then
@@ -142,47 +140,15 @@ class IconPackage
         File.join(path, size, type, name)
     end
 
-    @@package = nil
-    def self.setPath(path)
-        @@package = self.new(path)
+    def packageName
+        File.basename(@path)
     end
 
-    def self.getPackage
-        @@package
+    def eachIcons(&blk)
+        @icons.each(&blk)
     end
 
-    def self.packageName
-        File.basename(@@package.path)
-    end
-
-    def self.filePath(name, preferredSize=[])
-        @@package.filePath(name, preferredSize)
-    end
-
-    # bypassing.
-#     %w{ path allSizes allTypes icons }.each do |atr|
-#         self.module_eval do
-#             @@package.__send__(atr)
-#         end
-#     end
-
-    def self.eachIcons(&blk)
-        @@package.icons.each(&blk)
-    end
-
-    def self.path
-        @@package.path
-    end
-
-    def self.allSizes
-        @@package.allSizes
-    end
-
-    def self.allTypes
-        @@package.allTypes
-    end
-
-    def self.getIconInfo(name)
-        @@package.icons[name]
+    def getIconInfo(name)
+        @icons[name]
     end
 end
