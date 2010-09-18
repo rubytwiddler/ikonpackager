@@ -52,16 +52,14 @@ class IconPackageSelectorDlg < Qt::Dialog
         connect(@iconPckagesList, SIGNAL('itemClicked(QListWidgetItem *)'), \
                 self, SLOT('itemClicked(QListWidgetItem *)'))
 
-        @okBtn = KDE::PushButton.new(KDE::Icon.new('dialog-ok'), 'OK')
-        @cancelBtn = KDE::PushButton.new(KDE::Icon.new('dialog-cancel'), 'Cancel')
-        connect(@okBtn, SIGNAL(:clicked), self, SLOT(:accept))
-        connect(@cancelBtn, SIGNAL(:clicked), self, SLOT(:reject))
+        @closeBtn = KDE::PushButton.new(KDE::Icon.new('dialog-close'), i18n('Close'))
+        connect(@closeBtn, SIGNAL(:clicked), self, SLOT(:close))
 
         # layout
         lo = Qt::VBoxLayout.new do |l|
             l.addWidget(@iconDirsComboBox)
             l.addWidget(@iconPckagesList)
-            l.addWidgets(nil, @okBtn, @cancelBtn)
+            l.addWidgets(nil, @closeBtn)
         end
         setLayout(lo)
     end
