@@ -20,7 +20,6 @@ require 'fileutils'
 require 'net/http'
 require 'shellwords'
 require 'set'
-require 'ap'
 
 # additional libs
 require 'korundum4'
@@ -60,18 +59,18 @@ class MainWindow < KDE::MainWindow
     #
     #
     def createWidgets
-        @iconViewDoc = IconViewDock.new(self)
-        addDockWidget(Qt::LeftDockWidgetArea, @iconViewDoc)
-        @iconInfoDoc = IconInfoDock.new(self)
-        addDockWidget(Qt::LeftDockWidgetArea, @iconInfoDoc)
+        @iconViewDock = IconViewDock.new(self)
+        addDockWidget(Qt::LeftDockWidgetArea, @iconViewDock)
+        @iconInfoDock = IconInfoDock.new(self)
+        addDockWidget(Qt::LeftDockWidgetArea, @iconInfoDock)
 
         @iconListLeftPane = IconListPane.new
         @iconListRightPane = IconListPane.new
         @paneGroup = PaneGroup.new do |w|
             w.add(@iconListLeftPane)
             w.add(@iconListRightPane)
-            w.addIconPeer(@iconInfoDoc)
-            w.addIconPeer(@iconViewDoc)
+            w.addIconPeer(@iconInfoDock)
+            w.addIconPeer(@iconViewDock)
         end
 
         @paneSplitter = Qt::Splitter.new(Qt::Horizontal) do |s|
@@ -102,6 +101,8 @@ class MainWindow < KDE::MainWindow
             { :icon => 'edit-copy', :shortCut => 'Ctrl+C', :triggered => :copyIcon })
         @pasteAction = @actions.addNew(i18n('Paste Icon'), self, \
             { :icon => 'edit-paste', :shortCut => 'Ctrl+V', :triggered => :pasteIcon })
+        iconViewAction = @iconViewDock.toggleViewAction
+        iconInfoAction = @iconInfoDock.toggleViewAction
 
         # file menu
         fileMenu = KDE::Menu.new(i18n('&File'), self)
@@ -118,6 +119,11 @@ class MainWindow < KDE::MainWindow
         editMenu.addAction(@copyAction)
         editMenu.addAction(@pasteAction)
 
+        # view menu
+        viewMenu = KDE::Menu.new(i18n('View'), self)
+        viewMenu.addAction(iconInfoAction)
+        viewMenu.addAction(iconViewAction)
+
         # settings menu
 #         settingsMenu = KDE::Menu.new(i18n('Settings'), self)
 #         settingsMenu.addAction(@pasteAction)
@@ -128,6 +134,7 @@ class MainWindow < KDE::MainWindow
         menu = KDE::MenuBar.new
         menu.addMenu( fileMenu )
         menu.addMenu( editMenu )
+        menu.addMenu( viewMenu )
 #         menu.addMenu( helpMenu )
         setMenuBar(menu)
     end
@@ -154,6 +161,14 @@ class MainWindow < KDE::MainWindow
         @iconPackageNewDlg = IconPackageNewDlg.new
     end
 
+    #------------------------------------
+    #
+    # virtual slot
+    def closeEvent(ev)
+        @actions.writeSettings
+        super(ev)
+        $config.sync    # important!  qtruby can't invoke destructor properly.
+    end
 
     #-------------------------------------------------------------
     #
