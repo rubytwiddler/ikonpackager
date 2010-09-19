@@ -200,7 +200,30 @@ class MainWindow < KDE::MainWindow
 
     slots :newPackage
     def newPackage
-        @iconPackageNewDlg.exec
+        if @iconPackageNewDlg.exec == Qt::Dialog::Accepted then
+            createPackageNew
+        end
+    end
+
+    def createPackageNew
+        path = @iconPackageNewDlg.packagePath
+        name = @iconPackageNewDlg.packageName
+        packagePath = File.join(path, name)
+        FileUtils.makedirs( packagePath )
+        unless File.exist?(packagePath)
+            KDE::MessageBox.error(self, i18n("could'nt create %s directory") % packagePath)
+            return
+        end
+        # directories
+        %w{ 32x32 }.each do |size|
+            sizePath = File.join(packagePath, size)
+            FileUtils.makedirs(sizePath)
+            %w{ actions }.each do |type|
+                typePath = File.join(packagePath, type)
+                FileUtils.makedirs(sizePath)
+            end
+        end
+        iconPackageSelected(packagePath)
     end
 
     slots :renameIcon

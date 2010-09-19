@@ -27,6 +27,7 @@ class IconListPane < Qt::Frame
 
     PRE_TYPE = 'Type: '
 
+    attr_reader :package
     attr_writer :observer
     signals 'itemClicked(QObject&,const QString&)'
     def createWidget
@@ -160,6 +161,7 @@ class PaneGroup < Qt::Object
         return unless @panes.include? pane and pane and @activePane != pane
         @activePane = pane
         @panes.each { |p| p.active = p == @activePane }
+        eventCall(:packageChanged, @activePane.package)
     end
 
     slots 'splitPaneToggled(bool)'

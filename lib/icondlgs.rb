@@ -90,6 +90,7 @@ class IconPackageNewDlg < Qt::Dialog
         end
         @otherDirBtn = KDE::PushButton.new(i18n('Other Directory')) do |w|
             connect(w, SIGNAL(:clicked)) do
+                @fileSelectDlg.setDirectory(@iconDirsComboBox.currentText)
                 if @fileSelectDlg.exec == Qt::Dialog::Accepted then
                     dir = @fileSelectDlg.selectedFiles.first
                     @iconDirsComboBox.addItem(dir)
@@ -98,11 +99,12 @@ class IconPackageNewDlg < Qt::Dialog
                 end
             end
         end
-        @packageNameLineEdit = KDE::LineEdit.new
+        @packageNameLineEdit = KDE::LineEdit.new('New Icon Package')
         @okBtn = KDE::PushButton.new(KDE::Icon.new('dialog-ok'), 'OK')
         @cancelBtn = KDE::PushButton.new(KDE::Icon.new('dialog-cancel'), 'Cancel')
         connect(@okBtn, SIGNAL(:clicked), self, SLOT(:accept))
         connect(@cancelBtn, SIGNAL(:clicked), self, SLOT(:reject))
+        #
 
         # layout
         lo = Qt::VBoxLayout.new do |l|

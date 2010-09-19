@@ -1,10 +1,13 @@
 *new package command generate template files.
+*create wizard.
 
 *copy/rename/move icon package.
-*file selector dock.
+*swap pane.
 *launch icon editor gimp/inkskape.
 *bug error : couldn't create image from  ""
 *convert .icon file.
+*pack direcotory for ready to publish.
+*upload to kde-look.org
 
 *check icon size validity.
 *add no directory hierarchy type icon package.

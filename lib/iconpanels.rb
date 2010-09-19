@@ -60,6 +60,9 @@ class IconViewDock < Qt::DockWidget
         @scrollArea.setWidget(vw)
         oldw.destroy if oldw
     end
+
+    def packageChanged(package)
+    end
 end
 
 
@@ -103,4 +106,13 @@ class IconInfoDock < Qt::DockWidget
         @typesLabel.text = iconInfo.types.join(',')
         @sizesLabel.text = iconInfo.sizes.join(', ')
     end
+
+    def packageChanged(package)
+        packageName = package ? package.packageName : ''
+        @packageLabel.text = packageName
+        @nameLabel.text = ''
+        @typesLabel.text = ''
+        @sizesLabel.text = ''
+    end
+
 end
