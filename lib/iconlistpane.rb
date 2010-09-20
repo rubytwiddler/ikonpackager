@@ -19,6 +19,7 @@ class IconListPane < Qt::Frame
         super(nil)
         @package = nil
         @activeFlag = false
+        @typeFilter = :All
 
         self.frameShape = Qt::Frame::Panel
         self.styleSheet = StyleFocusOff
@@ -48,7 +49,11 @@ class IconListPane < Qt::Frame
             end
         end
         #
-        @searchLine = KDE::ListWidgetSearchLine.new(nil, @iconListWidget)
+        @searchLine = KDE::LineEdit.new do |w|
+            connect(w,SIGNAL('textChanged(const QString &)'), \
+                    self, SLOT('filterChanged(const QString &)'))
+            w.setClearButtonShown(true)
+        end
 
         # layout
         lo = Qt::VBoxLayout.new do |l|
@@ -63,6 +68,8 @@ class IconListPane < Qt::Frame
         @package = IconPackage.new(path)
         @iconListWidget.setPackage(@package)
         @typeButton.text = PRE_TYPE + 'All'
+        @searchLine.text = ''
+        @typeFilter = :All
     end
 
     slots :selectType
@@ -79,31 +86,29 @@ class IconListPane < Qt::Frame
         action = menu.exec(@typeButton.mapToGlobal(Qt::Point.new(20, 10)))
         if action then
             @typeButton.text = action.text
-            filterIconByType(action.text[PRE_TYPE.size..-1])
+            @typeFilter = action.text[PRE_TYPE.size..-1] .to_sym
+            filterChanged(@searchLine.text)
         end
         menu.deleteLater
     end
 
-    def filterIconByType(type)
-        def displayAll
-            @iconListWidget.count.times do |n|
-                @iconListWidget.item(n).setHidden(false)
-            end
-        end
-        def filterByType(type_sym)
-            @iconListWidget.count.times do |n|
-                i = @iconListWidget.item(n)
-                iconInfo = @package.getIconInfo(i.text)
-                i.setHidden(! iconInfo.memberType?(type_sym) )
-            end
-        end
-
-        puts "filter:#{type}"
-        type_sym = type.to_sym
-        if type_sym == :All then
-            displayAll
+    slots 'filterChanged(const QString &)'
+    def filterChanged(text)
+        if text then
+            regx = /#{Regexp.escape(text.strip)}/i
         else
-            filterByType(type_sym)
+            regx = nil
+        end
+        @iconListWidget.count.times do |n|
+            i = @iconListWidget.item(n)
+            if regx and i.text !~ regx then
+                @iconListWidget.item(n).setHidden(true)
+            elsif @typeFilter == :All then
+                @iconListWidget.item(n).setHidden(false)
+            else
+                iconInfo = @package.getIconInfo(i.text)
+                i.setHidden(! iconInfo.memberType?(@typeFilter) )
+            end
         end
     end
 
