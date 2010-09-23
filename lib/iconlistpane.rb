@@ -94,7 +94,7 @@ class IconListPane < Qt::Frame
 
     slots 'filterChanged(const QString &)'
     def filterChanged(text)
-        if text then
+        if text and !text.empty? then
             regx = /#{Regexp.escape(text.strip)}/i
         else
             regx = nil
