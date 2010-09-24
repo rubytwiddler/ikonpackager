@@ -1,5 +1,6 @@
 *new package command generate template files.
 *create wizard.
+*types are not sorted.
 
 *copy/rename/move icon package.
 *swap pane.
@@ -8,6 +9,7 @@
 *convert .icon file.
 *pack direcotory for ready to publish.
 *upload to kde-look.org
+*drop image in pane.
 
 *check icon size validity.
 *add no directory hierarchy type icon package.
