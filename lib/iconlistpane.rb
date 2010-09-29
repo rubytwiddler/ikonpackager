@@ -80,7 +80,7 @@ class IconListPane < Qt::Frame
         menu.addAction(PRE_TYPE + 'All')
 
         # set types list in @typeButton
-        @package.allTypes.each do |type|
+        @package.allTypes.sort.each do |type|
             menu.addAction(PRE_TYPE  + type)
         end
         action = menu.exec(@typeButton.mapToGlobal(Qt::Point.new(20, 10)))
