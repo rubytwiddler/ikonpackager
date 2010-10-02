@@ -110,14 +110,16 @@ class IconPackage
     end
 
     public
-    attr_reader :path, :allSizes, :allTypes, :icons
-    alias :list :icons
+    attr_reader :path, :allSizes, :allTypes
+#     attr_reader :iconList
+#     alias :list :iconList
+#     alias :icons :iconList
 
     def initialize(path)
         @path = path
         @allSizes = Set.new
         @allTypes = Set.new
-        @icons = IconList.new
+        @iconList = IconList.new
 
         # all sizes
         @allSizes += Dir.allDirs(path)
@@ -134,7 +136,7 @@ class IconPackage
                 if File.exist? dir then
                     Dir.foreach(dir) do |f|
                         if f =~ /\.(png|jpg|jpeg|gif|svg|svgz)$/i then
-                            icon = @icons.add(f)
+                            icon = @iconList.add(f)
                             icon.addSize(size)
                             icon.addType(type)
                         end
@@ -145,21 +147,21 @@ class IconPackage
     end
 
     def exist?(name)
-        @icons[name]
+        @iconList[name]
     end
 
     def addIcon(icon)
         @allTypes += icon.types
         @allSizes += icon.sizes
-        @icons.addIcon(icon)
+        @iconList.addIcon(icon)
     end
 
     # @name : icon name
     def filePath(name, preferredSize=[])
-        icon = @icons[name]
+        icon = @iconList[name]
         unless icon then
             puts "internal error: no icon name '#{name.to_s}'"
-            puts @icons.inspect
+            puts @iconList.inspect
             exit 1
         end
         unless preferredSize.kind_of? Array then
@@ -179,10 +181,10 @@ class IconPackage
     end
 
     def eachIcon(&blk)
-        @icons.each(&blk)
+        @iconList.each(&blk)
     end
 
     def getIconInfo(name)
-        @icons[name]
+        @iconList[name]
     end
 end

@@ -159,9 +159,27 @@ class IconListPane < Qt::Frame
     #
     #
     def renameIcon(newName)
+        puts "rename to #{newName}"
         return nil unless itemSelected?
-        oldName = @selectedItem.text
 
+        # check exist.
+        if @package.getIconInfo(newName) then
+            KDE::Message.information(self, i18n('%s icon is already exist.') % newName)
+            return
+        end
+
+        icon = selectedIconInfo
+        dir = @package.path
+
+        icon.types.each do |type|
+            icon.sizes.each do |sz|
+                srcPath = icon.realFileName(dir, sz, type)
+                fileExtName = File.extname(srcPath)
+                dstPath = File.join(dir, sz, type, newName + fileExtName)
+                puts "mv #{srcPath.shellescape} #{dstPath.shellescape}"
+                FileUtils.mv(srcPath, dstPath)
+            end
+        end
     end
 end
 
