@@ -213,10 +213,15 @@ class MainWindow < KDE::MainWindow
 
     slots :renameIcon
     def renameIcon
-        @iconRenameDlg ||= IconRenameDlg.new
         iconName = @paneGroup.activePane.selectedIconName
         return unless iconName
 
+        unless File.writable?(@paneGroup.activePane.package.path) then
+            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % @paneGroup.activePane.package.packageName)
+            return
+        end
+
+        @iconRenameDlg ||= IconRenameDlg.new
         newName = @iconRenameDlg.rename(iconName)
         if newName then
             @paneGroup.activePane.renameIcon(newName)
@@ -253,9 +258,14 @@ class MainWindow < KDE::MainWindow
         dstDir = dstPackage.path
         srcDir = srcPackage.path
         name = srcIcon.name
+        # writable check
+        unless File.writable?(dstDir) then
+            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % dstPackage.packageName)
+            return
+        end
         # overwrite check
         if dstPackage.exist?(name) then
-            ret = KDE::MessageBox::questionYesNo(self, i18n('%s icon already exist. proceed any way? ') % name)
+            ret = KDE::MessageBox::questionYesNo(self, i18n("'%s' icon already exist. proceed any way?") % name)
             return unless ret == KDE::MessageBox::Yes
         end
         sizes.each do |sz|

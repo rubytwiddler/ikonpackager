@@ -1,6 +1,8 @@
 *new package command generate template files.
 *create wizard.
 *refactor: move copy method to icon.rb
+*move icon check same package
+*don't add icon when overwrite.
 *select package from other directory.
 
 *copy/rename/move icon package.
