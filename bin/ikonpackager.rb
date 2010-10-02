@@ -253,8 +253,6 @@ class MainWindow < KDE::MainWindow
         # copy activePane#iconInfo  nonActivePane#package
         return if srcIcon.multiple?
 
-        type = srcIcon.types.first
-        sizes = srcIcon.sizes
         dstDir = dstPackage.path
         srcDir = srcPackage.path
         name = srcIcon.name
@@ -264,10 +262,15 @@ class MainWindow < KDE::MainWindow
             return
         end
         # overwrite check
+        overwrite = false
         if dstPackage.exist?(name) then
             ret = KDE::MessageBox::questionYesNo(self, i18n("'%s' icon already exist. proceed any way?") % name)
             return unless ret == KDE::MessageBox::Yes
+            overwrite = true
         end
+
+        type = srcIcon.types.first
+        sizes = srcIcon.sizes
         sizes.each do |sz|
             srcPath = srcIcon.realFileName(srcDir, sz, type)
             fileBaseName = File.basename(srcPath)
@@ -277,7 +280,7 @@ class MainWindow < KDE::MainWindow
             FileUtils.cp(srcPath, dstPath)
         end
         # update display
-        @paneGroup.nonActivePane.addIcon(srcIcon)
+        @paneGroup.nonActivePane.addIcon(srcIcon) unless overwrite
     end
 
     slots :pasteIconFromBuf
