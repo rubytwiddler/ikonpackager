@@ -1,5 +1,7 @@
 *new package command generate template files.
 *create wizard.
+*refactor: move copy method to icon.rb
+*select package from other directory.
 
 *copy/rename/move icon package.
 

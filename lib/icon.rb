@@ -16,8 +16,6 @@ class IconInfo
         else
             @sizes = Set.new([])
         end
-
-
     end
 
     def name
@@ -59,6 +57,14 @@ class IconInfo
         @fileNames.add(fileName)
     end
 
+    def rename(newName)
+        regex = /^#{name}/
+        @fileNames.collect! do |file|
+            file.sub(regex, newName)
+        end
+        @name = newName.to_sym
+    end
+
     def realFileName(path, size, type)
         filePath = nil
         return nil unless @fileNames.any? do |file|
@@ -78,7 +84,7 @@ class IconPackage
     protected
     class IconList
         def initialize
-            @icons = {}
+            @iconMap = {}
         end
 
         # delete file extention.
@@ -89,23 +95,27 @@ class IconPackage
         # check duplicate and add.
         def add(fileBaseName)
             sym = nameNormalize(fileBaseName)
-            unless @icons[sym] then
-                @icons[sym] = IconInfo.new(sym)
+            unless @iconMap[sym] then
+                @iconMap[sym] = IconInfo.new(sym)
             end
-            @icons[sym].addFileName(fileBaseName)
-            @icons[sym]
+            @iconMap[sym].addFileName(fileBaseName)
+            @iconMap[sym]
         end
 
         def addIcon(icon)
-            @icons[icon.name.to_sym] = icon
+            @iconMap[icon.name.to_sym] = icon
         end
 
         def each
-            @icons.each_value { |i| yield i }
+            @iconMap.each_value { |i| yield i }
         end
 
         def [](name)
-            @icons[name.to_sym]
+            @iconMap[name.to_sym]
+        end
+
+        def remove(name)
+            @iconMap.delete(name.to_sym)
         end
     end
 
@@ -153,6 +163,12 @@ class IconPackage
     def addIcon(icon)
         @allTypes += icon.types
         @allSizes += icon.sizes
+        @iconList.addIcon(icon)
+    end
+
+    def renameIcon(icon, newName)
+        @iconList.remove(icon.name)
+        icon.rename(newName)
         @iconList.addIcon(icon)
     end
 

@@ -164,7 +164,7 @@ class IconListPane < Qt::Frame
 
         # check exist.
         if @package.getIconInfo(newName) then
-            KDE::Message.information(self, i18n('%s icon is already exist.') % newName)
+            KDE::MessageBox.information(self, i18n("icon named '%s' is already exist.") % newName)
             return
         end
 
@@ -180,6 +180,13 @@ class IconListPane < Qt::Frame
                 FileUtils.mv(srcPath, dstPath)
             end
         end
+
+        oldName = icon.name
+        # update iconInfo
+        @package.renameIcon(icon, newName)
+
+        # update iconList
+        @selectedItem.text = newName
     end
 end
 
