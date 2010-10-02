@@ -94,13 +94,16 @@ class MainWindow < KDE::MainWindow
         @renameAction = @actions.addNew(i18n('Rename Icon'), self, \
             { :icon => 'edit-rename', :shortCut => 'Ctrl+R', :triggered => :renameIcon })
         @moveAction = @actions.addNew(i18n('Move Icon'), self, \
-            { :icon => 'configure', :shortCut => 'Ctrl+M', :triggered => :moveIcon })
+            { :icon => 'configure', :shortCut => 'Ctrl+M', :triggered => :moveIconToOtherSide })
         @cutAction = @actions.addNew(i18n('Cut Icon'), self, \
-            { :icon => 'edit-cut', :shortCut => 'Ctrl+X', :triggered => :cutIcon })
+            { :icon => 'edit-cut', :shortCut => 'Ctrl+X', :triggered => :cutIconToBuf })
         @copyAction = @actions.addNew(i18n('Copy Icon'), self, \
-            { :icon => 'edit-copy', :shortCut => 'Ctrl+C', :triggered => :copyIcon })
+            { :icon => 'edit-copy', :shortCut => 'Ctrl+C', :triggered => :copyIconToBuf })
         @pasteAction = @actions.addNew(i18n('Paste Icon'), self, \
-            { :icon => 'edit-paste', :shortCut => 'Ctrl+V', :triggered => :pasteIcon })
+            { :icon => 'edit-paste', :shortCut => 'Ctrl+V', :triggered => :pasteIconFromBuf })
+
+        @copySideAction = @actions.addNew(i18n('Copy Icon'), self, \
+            { :icon => 'edit-copy', :shortCut => 'Ctrl+2', :triggered => :copyIconToOtherSide})
         @iconViewAction = @iconViewDock.toggleViewAction
         @iconInfoAction = @iconInfoDock.toggleViewAction
         @splitPaneAction = KDE::ToggleAction.new(KDE::Icon.new('view-split-left-right'), \
@@ -147,17 +150,19 @@ class MainWindow < KDE::MainWindow
     end
 
     def createToolBar
-        @mainToolBar = toolBar
+        @mainToolBar = toolBar("mainToolBar")
         @mainToolBar.addAction(@newPackageAction)
         @mainToolBar.addAction(@openPackageAction)
         @mainToolBar.addSeparator
         @mainToolBar.addAction(@splitPaneAction)
         @mainToolBar.addSeparator
         @mainToolBar.addAction(@renameAction)
-        @mainToolBar.addAction(@moveAction)
         @mainToolBar.addAction(@cutAction)
         @mainToolBar.addAction(@copyAction)
         @mainToolBar.addAction(@pasteAction)
+        @mainToolBar.addSeparator
+        @mainToolBar.addAction(@moveAction)
+        @mainToolBar.addAction(@copySideAction)
     end
 
     #
@@ -168,7 +173,6 @@ class MainWindow < KDE::MainWindow
             connect(d, SIGNAL('iconPackageSelected(const QString&)'), \
                     self, SLOT('iconPackageSelected(const QString&)'))
         end
-        @iconPackageNewDlg = IconPackageNewDlg.new
     end
 
     #------------------------------------
@@ -200,7 +204,8 @@ class MainWindow < KDE::MainWindow
 
     slots :newPackage
     def newPackage
-        if @iconPackageNewDlg.exec == Qt::Dialog::Accepted then
+        @iconPackageNewDlg ||= IconPackageNewDlg.new
+        if @iconPackageNewDlg.newPackage then
             iconPackageSelected(@iconPackageNewDlg.createNewPackage)
         end
     end
@@ -208,22 +213,65 @@ class MainWindow < KDE::MainWindow
 
     slots :renameIcon
     def renameIcon
+        @iconRenameDlg ||= IconRenameDlg.new
+        iconName = @paneGroup.activePane.selectedIconName
+        return unless iconName
+
+        newName = @iconRenameDlg.rename(iconName)
+        if newName then
+            @paneGroup.activePane.renameIcon(newName)
+        end
     end
 
-    slots :moveIcon
-    def moveIcon
+
+    slots :moveIconToOtherSide
+    def moveIconToOtherSide
     end
 
-    slots :cutIcon
-    def cutIcon
+    slots :cutIconToBuf
+    def cutIconToBuf
     end
 
-    slots :copyIcon
-    def copyIcon
+    slots :copyIconToBuf
+    def copyIconToBuf
     end
 
-    slots :pasteIcon
-    def pasteIcon
+    slots :copyIconToOtherSide
+    def copyIconToOtherSide
+        puts "copyIconToOtherSide"
+        dstPackage = @paneGroup.nonActivePane.package
+        srcPackage = @paneGroup.activePane.package
+        srcIcon = @paneGroup.activePane.selectedIconInfo
+        return unless dstPackage and srcIcon
+
+
+        # copy activePane#iconInfo  nonActivePane#package
+        return if srcIcon.multiple?
+
+        type = srcIcon.types.first
+        sizes = srcIcon.sizes
+        dstDir = dstPackage.path
+        srcDir = srcPackage.path
+        name = srcIcon.name
+        # overwrite check
+        if dstPackage.exist?(name) then
+            ret = KDE::MessageBox::questionYesNo(self, i18n('%s icon already exist. proceed any way? ') % name)
+            return unless ret == KDE::MessageBox::Yes
+        end
+        sizes.each do |sz|
+            srcPath = srcIcon.realFileName(srcDir, sz, type)
+            fileBaseName = File.basename(srcPath)
+            dstPath = File.join(dstDir, sz, type, fileBaseName)
+            puts "cp #{srcPath.shellescape} #{dstPath.shellescape}"
+            FileUtils.mkdir_p(File.dirname(dstPath))
+            FileUtils.cp(srcPath, dstPath)
+        end
+        # update display
+        @paneGroup.nonActivePane.addIcon(srcIcon)
+    end
+
+    slots :pasteIconFromBuf
+    def pasteIconFromBuf
     end
 end
 

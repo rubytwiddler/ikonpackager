@@ -101,6 +101,12 @@ class IconPackageNewDlg < Qt::Wizard
         end
         packagePath
     end
+
+    # @return success bool flag
+    def newPackage
+        currentId = startId
+        self.exec == Qt::Dialog::Accepted
+    end
 end
 
 
@@ -144,7 +150,6 @@ class PackageNamePage < Qt::WizardPage
         lo = Qt::VBoxLayout.new do |l|
             l.addWidgets(@iconDirsComboBox, @otherDirBtn)
             l.addWidgets(i18n('Package Name :'), @packageNameLineEdit)
-            l.addWidgets(nil, @okBtn, @cancelBtn)
         end
         setLayout(lo)
     end
@@ -245,3 +250,37 @@ class PackageSizesPage < Qt::WizardPage
         allNames(@typeBoxes)
     end
 end
+
+#--------------------------------------------------------------------
+#
+#
+class IconRenameDlg < Qt::Dialog
+    def initialize
+        super
+
+        @nameLineEdit = KDE::LineEdit.new
+        @okBtn = KDE::PushButton.new(KDE::Icon.new('dialog-ok'), 'OK')
+        @cancelBtn = KDE::PushButton.new(KDE::Icon.new('dialog-cancel'), 'Cancel')
+        connect(@okBtn, SIGNAL(:clicked), self, SLOT(:accept))
+        connect(@cancelBtn, SIGNAL(:clicked), self, SLOT(:reject))
+
+        # layout
+        lo = Qt::VBoxLayout.new do |l|
+            l.addWidgets(i18n('New Icon Name:'), @nameLineEdit)
+            l.addWidgets(nil, @okBtn, @cancelBtn)
+        end
+        setLayout(lo)
+    end
+
+    def rename(oldName)
+        self.windowTitle = i18n('rename %s icon') % oldName
+        @nameLineEdit.text = oldName
+        (exec == Qt::Dialog::Accepted and @nameLineEdit.text != oldName \
+                and !@nameLineEdit.text.empty?) ? @nameLineEdit.text : nil
+    end
+
+    def nameValid?
+        File.exist?(@nameLineEdit.text)
+    end
+end
+

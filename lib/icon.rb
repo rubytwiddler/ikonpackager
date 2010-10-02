@@ -33,10 +33,10 @@ class IconInfo
     end
 
     def sizes
-        @sizes.sort_by do |s|
-            num = s.to_s[/\d+/]
+        @sizes.map { |s| s.to_s } .sort_by do |s|
+            num = s[/\d+/]
             num ? num.to_i : 1024
-        end .map { |s| s.to_s }
+        end
     end
 
     def maxSize
@@ -81,17 +81,23 @@ class IconPackage
             @icons = {}
         end
 
+        # delete file extention.
         def nameNormalize(name)
             name.sub(/(.*)\.\w+$/, "\\1").to_sym
         end
+
         # check duplicate and add.
-        def add(name)
-            sym = nameNormalize(name)
+        def add(fileBaseName)
+            sym = nameNormalize(fileBaseName)
             unless @icons[sym] then
                 @icons[sym] = IconInfo.new(sym)
             end
-            @icons[sym].addFileName(name)
+            @icons[sym].addFileName(fileBaseName)
             @icons[sym]
+        end
+
+        def addIcon(icon)
+            @icons[icon.name.to_sym] = icon
         end
 
         def each
@@ -99,14 +105,7 @@ class IconPackage
         end
 
         def [](name)
-            ret = @icons[name.to_sym]
-            unless ret
-                puts "internal error. no icon named:'#{name}'"
-                puts @icons.keys.inspect
-                puts @icons.values.inspect
-                exit 1
-            end
-            ret
+            @icons[name.to_sym]
         end
     end
 
@@ -145,9 +144,24 @@ class IconPackage
         end
     end
 
+    def exist?(name)
+        @icons[name]
+    end
+
+    def addIcon(icon)
+        @allTypes += icon.types
+        @allSizes += icon.sizes
+        @icons.addIcon(icon)
+    end
+
     # @name : icon name
     def filePath(name, preferredSize=[])
         icon = @icons[name]
+        unless icon then
+            puts "internal error: no icon name '#{name.to_s}'"
+            puts @icons.inspect
+            exit 1
+        end
         unless preferredSize.kind_of? Array then
             preferredSize = [ preferredSize ]
         end

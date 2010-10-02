@@ -3,6 +3,7 @@
 
 *copy/rename/move icon package.
 
+*save selected other directory for choose package menu.
 *swap pane.
 *launch icon editor gimp/inkskape.
 *bug error : couldn't create image from  ""

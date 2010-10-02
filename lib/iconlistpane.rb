@@ -4,11 +4,16 @@
 class IconListPane < Qt::Frame
     class IconListWidget < Qt::ListWidget
         def setPackage(package)
+            @package = package
             clear
             package.eachIcon do |i|
-                qtIcon = Qt::Icon.new(package.filePath(i.name))
-                addItem(Qt::ListWidgetItem.new(qtIcon, i.name))
+                addIcon(i.name)
             end
+        end
+
+        def addIcon(name)
+            qtIcon = Qt::Icon.new(@package.filePath(name))
+            addItem(Qt::ListWidgetItem.new(qtIcon, name))
         end
     end
 
@@ -45,6 +50,7 @@ class IconListPane < Qt::Frame
             w.resizeMode = Qt::ListView::Adjust
             w.gridSize = Qt::Size.new(64,64)
             connect(w, SIGNAL('itemClicked(QListWidgetItem*)')) do |i|
+                @selectedItem = i
                 @observer.eventCall(:iconChanged,  @package, i.text)
             end
         end
@@ -70,6 +76,12 @@ class IconListPane < Qt::Frame
         @typeButton.text = PRE_TYPE + 'All'
         @searchLine.text = ''
         @typeFilter = :All
+        @selectedItem = nil
+    end
+
+    def addIcon(icon)
+        @package.addIcon(icon)
+        @iconListWidget.addIcon(icon.name)
     end
 
     slots :selectType
@@ -125,6 +137,32 @@ class IconListPane < Qt::Frame
     def active
         @activeFlag
     end
+
+    def itemSelected?
+        active and @selectedItem and !@selectedItem.isHidden
+    end
+
+    def selectedIconName
+        return nil unless itemSelected?
+        @selectedItem.text
+    end
+
+    def selectedIconInfo
+        return nil unless @package
+        name = selectedIconName
+        return nil unless name
+        @package.getIconInfo(name)
+    end
+
+
+    #---------------------------------------
+    #
+    #
+    def renameIcon(newName)
+        return nil unless itemSelected?
+        oldName = @selectedItem.text
+
+    end
 end
 
 
@@ -150,6 +188,10 @@ class PaneGroup < Qt::Object
         @panes << pane
     end
 
+    def nonActivePane
+        (@panes - [@activePane]).first
+    end
+
     def eventCall(method, *args)
         @iconPeers.each { |p| p.send(method, *args) }
     end
@@ -163,7 +205,7 @@ class PaneGroup < Qt::Object
     end
 
     def activePane=(pane)
-        return unless @panes.include? pane and pane and @activePane != pane
+        return unless pane and @panes.include? pane and @activePane != pane
         @activePane = pane
         @panes.each { |p| p.active = p == @activePane }
         eventCall(:packageChanged, @activePane.package)
