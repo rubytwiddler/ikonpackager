@@ -188,6 +188,42 @@ class IconListPane < Qt::Frame
         # update iconList
         @selectedItem.text = newName
     end
+
+    def copyIconFrom(srcPackage, srcIcon)
+        return if srcIcon.multiple?
+
+        dstDir = @package.path
+        srcDir = srcPackage.path
+        name = srcIcon.name
+
+        return if File.expand_path(dstDir) == File.expand_path(srcDir)
+
+        # writable check
+        unless File.writable?(dstDir) then
+            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % @package.packageName)
+            return
+        end
+        # overwrite check
+        overwrite = false
+        if @package.exist?(name) then
+            ret = KDE::MessageBox::questionYesNo(self, i18n("'%s' icon already exist. proceed any way?") % name)
+            return unless ret == KDE::MessageBox::Yes
+            overwrite = true
+        end
+
+        type = srcIcon.types.first
+        sizes = srcIcon.sizes
+        sizes.each do |sz|
+            srcPath = srcIcon.realFileName(srcDir, sz, type)
+            fileBaseName = File.basename(srcPath)
+            dstPath = File.join(dstDir, sz, type, fileBaseName)
+            puts "cp #{srcPath.shellescape} #{dstPath.shellescape}"
+            FileUtils.mkdir_p(File.dirname(dstPath))
+            FileUtils.cp(srcPath, dstPath)
+        end
+        # update display
+        addIcon(srcIcon) unless overwrite
+    end
 end
 
 

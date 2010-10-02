@@ -244,43 +244,11 @@ class MainWindow < KDE::MainWindow
     slots :copyIconToOtherSide
     def copyIconToOtherSide
         puts "copyIconToOtherSide"
-        dstPackage = @paneGroup.nonActivePane.package
         srcPackage = @paneGroup.activePane.package
         srcIcon = @paneGroup.activePane.selectedIconInfo
-        return unless dstPackage and srcIcon
 
-
-        # copy activePane#iconInfo  nonActivePane#package
-        return if srcIcon.multiple?
-
-        dstDir = dstPackage.path
-        srcDir = srcPackage.path
-        name = srcIcon.name
-        # writable check
-        unless File.writable?(dstDir) then
-            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % dstPackage.packageName)
-            return
-        end
-        # overwrite check
-        overwrite = false
-        if dstPackage.exist?(name) then
-            ret = KDE::MessageBox::questionYesNo(self, i18n("'%s' icon already exist. proceed any way?") % name)
-            return unless ret == KDE::MessageBox::Yes
-            overwrite = true
-        end
-
-        type = srcIcon.types.first
-        sizes = srcIcon.sizes
-        sizes.each do |sz|
-            srcPath = srcIcon.realFileName(srcDir, sz, type)
-            fileBaseName = File.basename(srcPath)
-            dstPath = File.join(dstDir, sz, type, fileBaseName)
-            puts "cp #{srcPath.shellescape} #{dstPath.shellescape}"
-            FileUtils.mkdir_p(File.dirname(dstPath))
-            FileUtils.cp(srcPath, dstPath)
-        end
-        # update display
-        @paneGroup.nonActivePane.addIcon(srcIcon) unless overwrite
+        # copy from activePane#iconInfo  to nonActivePane#package
+        @paneGroup.nonActivePane.copyIconFrom(srcPackage, srcIcon)
     end
 
     slots :pasteIconFromBuf
