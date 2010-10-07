@@ -7,9 +7,17 @@ class IconPackageSelectorDlg < Qt::Dialog
         super(nil)
         self.windowTitle = i18n('Select Package')
 
+        @dirSelectDlg = Qt::FileDialog.new do |w|
+            w.options = Qt::FileDialog::ShowDirsOnly
+            w.fileMode = Qt::FileDialog::Directory
+        end
+
         @iconDirsComboBox = Qt::ComboBox.new do |w|
             w.addItems(KDE::Global.dirs.resourceDirs('icon'))
             connect(w, SIGNAL('currentIndexChanged(int)'), self, SLOT('currentIndexChanged(int)'))
+        end
+        @otherDirBtn = KDE::PushButton.new(i18n('Other Directory')) do |w|
+            connect(w, SIGNAL(:clicked), self, SLOT(:selectOtherDir))
         end
 
         @iconPckagesList = Qt::ListWidget.new
@@ -21,7 +29,7 @@ class IconPackageSelectorDlg < Qt::Dialog
 
         # layout
         lo = Qt::VBoxLayout.new do |l|
-            l.addWidget(@iconDirsComboBox)
+            l.addWidgets(@iconDirsComboBox, @otherDirBtn)
             l.addWidget(@iconPckagesList)
             l.addWidgets(nil, @closeBtn)
         end
@@ -37,6 +45,17 @@ class IconPackageSelectorDlg < Qt::Dialog
     signals 'iconPackageSelected(const QString&)'
     def itemClicked(item)
         emit iconPackageSelected(File.join(@lastPath, item.text))
+    end
+
+    slots :selectOtherDir
+    def selectOtherDir
+        @dirSelectDlg.setDirectory(@iconDirsComboBox.currentText)
+        if @dirSelectDlg.exec == Qt::Dialog::Accepted then
+            dir = @dirSelectDlg.selectedFiles.first
+            @iconDirsComboBox.addItem(dir)
+            index = @iconDirsComboBox.findText(dir)
+            @iconDirsComboBox.currentIndex = index
+        end
     end
 
     def updateIconPackageList
@@ -104,7 +123,7 @@ class IconPackageNewDlg < Qt::Wizard
 
     # @return success bool flag
     def newPackage
-        currentId = startId
+        restart
         self.exec == Qt::Dialog::Accepted
     end
 end
@@ -116,7 +135,7 @@ class PackageNamePage < Qt::WizardPage
 
         setTitle(i18n('Package Directory and Name'))
 
-        @fileSelectDlg = Qt::FileDialog.new do |w|
+        @dirSelectDlg = Qt::FileDialog.new do |w|
             w.options = Qt::FileDialog::ShowDirsOnly
             w.fileMode = Qt::FileDialog::Directory
         end
@@ -129,9 +148,9 @@ class PackageNamePage < Qt::WizardPage
         end
         @otherDirBtn = KDE::PushButton.new(i18n('Other Directory')) do |w|
             connect(w, SIGNAL(:clicked)) do
-                @fileSelectDlg.setDirectory(@iconDirsComboBox.currentText)
-                if @fileSelectDlg.exec == Qt::Dialog::Accepted then
-                    dir = @fileSelectDlg.selectedFiles.first
+                @dirSelectDlg.setDirectory(@iconDirsComboBox.currentText)
+                if @dirSelectDlg.exec == Qt::Dialog::Accepted then
+                    dir = @dirSelectDlg.selectedFiles.first
                     @iconDirsComboBox.addItem(dir)
                     index = @iconDirsComboBox.findText(dir)
                     @iconDirsComboBox.currentIndex = index

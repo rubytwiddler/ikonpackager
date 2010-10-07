@@ -284,4 +284,11 @@ class PaneGroup < Qt::Object
             @panes[1].visible = false
         end
     end
+
+    slots :swapPane
+    def swapPane
+        splitter = @panes[0].parent
+        splitter.insertWidget(1, @panes[0])
+        @panes[1], @panes[0] = @panes[0], @panes[1]
+    end
 end

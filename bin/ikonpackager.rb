@@ -1,12 +1,12 @@
 #!/usr/bin/ruby
+# encoding: UTF-8
 #
 #    2010 by ruby.twiddler@gmail.com
 #
 #      icon packager for KDE.
 #
 
-$KCODE = 'UTF8'
-require 'ftools'
+require 'fileutils'
 
 APP_FILE = File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__
 APP_NAME = File.basename(APP_FILE).sub(/\.rb/, '')
@@ -16,7 +16,6 @@ APP_VERSION = "0.1.0"
 
 # standard libs
 require 'rubygems'
-require 'fileutils'
 require 'net/http'
 require 'shellwords'
 require 'set'
@@ -95,12 +94,6 @@ class MainWindow < KDE::MainWindow
             { :icon => 'edit-rename', :shortCut => 'Ctrl+R', :triggered => :renameIcon })
         @moveAction = @actions.addNew(i18n('Move Icon'), self, \
             { :icon => 'configure', :shortCut => 'Ctrl+M', :triggered => :moveIconToOtherSide })
-        @cutAction = @actions.addNew(i18n('Cut Icon'), self, \
-            { :icon => 'edit-cut', :shortCut => 'Ctrl+X', :triggered => :cutIconToBuf })
-        @copyAction = @actions.addNew(i18n('Copy Icon'), self, \
-            { :icon => 'edit-copy', :shortCut => 'Ctrl+C', :triggered => :copyIconToBuf })
-        @pasteAction = @actions.addNew(i18n('Paste Icon'), self, \
-            { :icon => 'edit-paste', :shortCut => 'Ctrl+V', :triggered => :pasteIconFromBuf })
 
         @copySideAction = @actions.addNew(i18n('Copy Icon'), self, \
             { :icon => 'edit-copy', :shortCut => 'Ctrl+2', :triggered => :copyIconToOtherSide})
@@ -111,6 +104,8 @@ class MainWindow < KDE::MainWindow
         @splitPaneAction.checked = true
         connect(@splitPaneAction, SIGNAL('toggled(bool)'), @paneGroup, \
                 SLOT('splitPaneToggled(bool)'))
+        @swapPaneAction = @actions.addNew(i18n('Swap Pane'), self, \
+            { :icon => 'view-split-left-right', :shortCut => 'Ctrl+3', :triggered => [@paneGroup, :swapPane]})
 
         # file menu
         fileMenu = KDE::Menu.new(i18n('&File'), self)
@@ -123,9 +118,6 @@ class MainWindow < KDE::MainWindow
         editMenu = KDE::Menu.new(i18n('Edit'), self)
         editMenu.addAction(@renameAction)
         editMenu.addAction(@moveAction)
-        editMenu.addAction(@cutAction)
-        editMenu.addAction(@copyAction)
-        editMenu.addAction(@pasteAction)
 
         # view menu
         viewMenu = KDE::Menu.new(i18n('View'), self)
@@ -155,6 +147,7 @@ class MainWindow < KDE::MainWindow
         @mainToolBar.addAction(@openPackageAction)
         @mainToolBar.addSeparator
         @mainToolBar.addAction(@splitPaneAction)
+        @mainToolBar.addAction(@swapPaneAction)
         @mainToolBar.addSeparator
         @mainToolBar.addAction(@renameAction)
         @mainToolBar.addAction(@cutAction)
@@ -233,14 +226,6 @@ class MainWindow < KDE::MainWindow
     def moveIconToOtherSide
     end
 
-    slots :cutIconToBuf
-    def cutIconToBuf
-    end
-
-    slots :copyIconToBuf
-    def copyIconToBuf
-    end
-
     slots :copyIconToOtherSide
     def copyIconToOtherSide
         puts "copyIconToOtherSide"
@@ -249,10 +234,6 @@ class MainWindow < KDE::MainWindow
 
         # copy from activePane#iconInfo  to nonActivePane#package
         @paneGroup.nonActivePane.copyIconFrom(srcPackage, srcIcon)
-    end
-
-    slots :pasteIconFromBuf
-    def pasteIconFromBuf
     end
 end
 
@@ -263,7 +244,7 @@ end
 #    main start
 #
 about = KDE::AboutData.new(APP_NAME, nil, KDE::ki18n(APP_NAME), APP_VERSION,
-                            KDE::ki18n('Gem Utitlity with KDE GUI.')
+                            KDE::ki18n('icon packger for KDE')
                            )
 about.addLicenseTextFile(APP_DIR + '/MIT-LICENSE')
 KDE::CmdLineArgs.init(ARGV, about)

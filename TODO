@@ -1,15 +1,11 @@
 *new package command generate template files.
-*create wizard.
-*refactor: move copy method to icon.rb
-*move icon check same package
-*don't add icon when overwrite.
-*select package from other directory.
+*move icon
 
-*copy/rename/move icon package.
 
 *save selected other directory for choose package menu.
-*swap pane.
 *launch icon editor gimp/inkskape.
+*convert/generate smaller/bigger icon.
+*organize each icon files.
 *bug error : couldn't create image from  ""
 *convert .icon file.
 *pack direcotory for ready to publish.
