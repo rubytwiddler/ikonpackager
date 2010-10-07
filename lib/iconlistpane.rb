@@ -189,7 +189,9 @@ class IconListPane < Qt::Frame
         @selectedItem.text = newName
     end
 
-    def copyIconFrom(srcPackage, srcIcon)
+    def copyIconFrom(srcPane)
+        srcPackage = srcPane.package
+        srcIcon = srcPane.selectedIconInfo
         return if srcIcon.multiple?
 
         dstDir = @package.path
@@ -283,6 +285,56 @@ class PaneGroup < Qt::Object
             self.activePane = @panes[0]
             @panes[1].visible = false
         end
+    end
+
+    slots 'iconPackageSelected(const QString&)'
+    def iconPackageSelected(path)
+        activePane.setPackagePath(path)
+    end
+
+
+    slots :openPackage
+    def openPackage
+        @iconPackageSelectorDlg ||= IconPackageSelectorDlg.new do |d|
+            connect(d, SIGNAL('iconPackageSelected(const QString&)'), \
+                    self, SLOT('iconPackageSelected(const QString&)'))
+        end
+        path = @iconPackageSelectorDlg.select
+    end
+
+    slots :newPackage
+    def newPackage
+        @iconPackageNewDlg ||= IconPackageNewDlg.new
+        if @iconPackageNewDlg.newPackage then
+            iconPackageSelected(@iconPackageNewDlg.createNewPackage)
+        end
+    end
+
+    slots :moveIconToOtherSide
+    def moveIconToOtherSide
+
+    end
+
+    slots :renameIcon
+    def renameIcon
+        iconName = activePane.selectedIconName
+        return unless iconName
+
+        unless File.writable?(activePane.package.path) then
+            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % activePane.package.packageName)
+            return
+        end
+
+        @iconRenameDlg ||= IconRenameDlg.new
+        newName = @iconRenameDlg.rename(iconName)
+        if newName then
+            activePane.renameIcon(newName)
+        end
+    end
+
+    slots :copyIconToOtherSide
+    def copyIconToOtherSide
+        nonActivePane.copyIconFrom(activePane)
     end
 
     slots :swapPane

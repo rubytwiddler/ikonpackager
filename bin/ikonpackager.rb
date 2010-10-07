@@ -87,16 +87,16 @@ class MainWindow < KDE::MainWindow
         @quitAction = @actions.addNew(i18n('Quit'), self, \
             { :icon => 'exit', :shortCut => 'Ctrl+Q', :triggered => :close })
         @openPackageAction = @actions.addNew(i18n('Open Package'), self, \
-            { :icon => 'document-open', :shortCut => 'Ctrl+O', :triggered => :openPackage })
+            { :icon => 'document-open', :shortCut => 'Ctrl+O', :triggered => [@paneGroup, :openPackage]})
         @newPackageAction = @actions.addNew(i18n('New Icon Package'), self, \
-            { :icon => 'document-new', :shortCut => 'Ctrl+N', :triggered => :newPackage})
+            { :icon => 'document-new', :shortCut => 'Ctrl+N', :triggered => [@paneGroup, :newPackage]})
         @renameAction = @actions.addNew(i18n('Rename Icon'), self, \
-            { :icon => 'edit-rename', :shortCut => 'Ctrl+R', :triggered => :renameIcon })
+            { :icon => 'edit-rename', :shortCut => 'Ctrl+R', :triggered => [@paneGroup, :renameIcon] })
         @moveAction = @actions.addNew(i18n('Move Icon'), self, \
-            { :icon => 'configure', :shortCut => 'Ctrl+M', :triggered => :moveIconToOtherSide })
+            { :icon => 'configure', :shortCut => 'Ctrl+M', :triggered => [@paneGroup, :moveIconToOtherSide] })
 
         @copySideAction = @actions.addNew(i18n('Copy Icon'), self, \
-            { :icon => 'edit-copy', :shortCut => 'Ctrl+2', :triggered => :copyIconToOtherSide})
+            { :icon => 'edit-copy', :shortCut => 'Ctrl+2', :triggered => [@paneGroup, :copyIconToOtherSide]})
         @iconViewAction = @iconViewDock.toggleViewAction
         @iconInfoAction = @iconInfoDock.toggleViewAction
         @splitPaneAction = KDE::ToggleAction.new(KDE::Icon.new('view-split-left-right'), \
@@ -162,10 +162,6 @@ class MainWindow < KDE::MainWindow
     #
     #
     def createDialogs
-        @iconPackageSelectorDlg = IconPackageSelectorDlg.new do |d|
-            connect(d, SIGNAL('iconPackageSelected(const QString&)'), \
-                    self, SLOT('iconPackageSelected(const QString&)'))
-        end
     end
 
     #------------------------------------
@@ -183,57 +179,6 @@ class MainWindow < KDE::MainWindow
     slots :firstSystemUpdate
     def firstSystemUpdate
         @paneGroup.activePane = @iconListLeftPane
-    end
-
-    slots 'iconPackageSelected(const QString&)'
-    def iconPackageSelected(path)
-        @paneGroup.activePane.setPackagePath(path)
-    end
-
-    slots :openPackage
-    def openPackage
-        path = @iconPackageSelectorDlg.select
-    end
-
-    slots :newPackage
-    def newPackage
-        @iconPackageNewDlg ||= IconPackageNewDlg.new
-        if @iconPackageNewDlg.newPackage then
-            iconPackageSelected(@iconPackageNewDlg.createNewPackage)
-        end
-    end
-
-
-    slots :renameIcon
-    def renameIcon
-        iconName = @paneGroup.activePane.selectedIconName
-        return unless iconName
-
-        unless File.writable?(@paneGroup.activePane.package.path) then
-            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % @paneGroup.activePane.package.packageName)
-            return
-        end
-
-        @iconRenameDlg ||= IconRenameDlg.new
-        newName = @iconRenameDlg.rename(iconName)
-        if newName then
-            @paneGroup.activePane.renameIcon(newName)
-        end
-    end
-
-
-    slots :moveIconToOtherSide
-    def moveIconToOtherSide
-    end
-
-    slots :copyIconToOtherSide
-    def copyIconToOtherSide
-        puts "copyIconToOtherSide"
-        srcPackage = @paneGroup.activePane.package
-        srcIcon = @paneGroup.activePane.selectedIconInfo
-
-        # copy from activePane#iconInfo  to nonActivePane#package
-        @paneGroup.nonActivePane.copyIconFrom(srcPackage, srcIcon)
     end
 end
 

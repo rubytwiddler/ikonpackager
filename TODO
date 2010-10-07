@@ -1,18 +1,20 @@
 *new package command generate template files.
-*move icon
+*drop image in pane.
+*move icon.
 
 
 *save selected other directory for choose package menu.
 *launch icon editor gimp/inkskape.
 *convert/generate smaller/bigger icon.
 *organize each icon files.
+  *rename each size file.
+  *move each/all size file.
 *bug error : couldn't create image from  ""
 *convert .icon file.
 *pack direcotory for ready to publish.
 *upload to kde-look.org
-*drop image in pane.
+*load from gnome icon
 
 *check icon size validity.
 *add no directory hierarchy type icon package.
 *progress bar when select folder.
-*rename each/all size file.
