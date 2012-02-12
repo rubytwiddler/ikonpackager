@@ -68,6 +68,7 @@ class IconPackageSelectorDlg < Qt::Dialog
 
         @lastPath = path
         @iconPckagesList.clear
+        return unless File.exist?(path) and File.directory?(path)
         Dir.allDirs(path).sort.each do |f|
             @iconPckagesList.addItem(f) if iconDir?(path, f)
         end
