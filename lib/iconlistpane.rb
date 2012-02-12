@@ -205,6 +205,7 @@ class IconListPane < Qt::Frame
             KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % @package.packageName)
             return
         end
+
         # overwrite check
         overwrite = false
         if @package.exist?(name) then
@@ -225,6 +226,45 @@ class IconListPane < Qt::Frame
         end
         # update display
         addIcon(srcIcon) unless overwrite
+    end
+
+    def moveIconFrom(srcPane)
+        srcPackage = srcPane.package
+        srcIcon = srcPane.selectedIconInfo
+        return if srcIcon.multiple?
+
+        dstDir = @package.path
+        srcDir = srcPackage.path
+        name = srcIcon.name
+
+        return if File.expand_path(dstDir) == File.expand_path(srcDir)
+
+        # writable check
+        unless File.writable?(dstDir) then
+            KDE::MessageBox::information(self, i18n("package '%s' directory is not writable.") % @package.packageName)
+            return
+        end
+
+        # overwrite check
+        overwrite = false
+        if @package.exist?(name) then
+            ret = KDE::MessageBox::questionYesNo(self, i18n("'%s' icon already exist. proceed any way?") % name)
+            return unless ret == KDE::MessageBox::Yes
+            overwrite = true
+        end
+
+        type = srcIcon.types.first
+        sizes = srcIcon.sizes
+        sizes.each do |sz|
+            srcPath = srcIcon.realFileName(srcDir, sz, type)
+            fileBaseName = File.basename(srcPath)
+            dstPath = File.join(dstDir, sz, type, fileBaseName)
+            puts "mv #{srcPath.shellescape} #{dstPath.shellescape}"
+            FileUtils.mkdir_p(File.dirname(dstPath))
+            FileUtils.mv(srcPath, dstPath, :force => true)
+        end
+        # update display
+#         addIcon(srcIcon) unless overwrite
     end
 end
 
@@ -310,11 +350,6 @@ class PaneGroup < Qt::Object
         end
     end
 
-    slots :moveIconToOtherSide
-    def moveIconToOtherSide
-
-    end
-
     slots :renameIcon
     def renameIcon
         iconName = activePane.selectedIconName
@@ -335,6 +370,11 @@ class PaneGroup < Qt::Object
     slots :copyIconToOtherSide
     def copyIconToOtherSide
         nonActivePane.copyIconFrom(activePane)
+    end
+
+    slots :moveIconToOtherSide
+    def moveIconToOtherSide
+        nonActivePane.moveIconFrom(activePane)
     end
 
     slots :swapPane
